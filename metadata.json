@@ -1,0 +1,6 @@
+{
+  "name": "PROVAL APF Intelligence Platform",
+  "description": "Advanced Builder, Project, Exposure & Risk Management for Banks / HFCs - AI Underwriting Command Centre",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
