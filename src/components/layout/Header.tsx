@@ -117,10 +117,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuditLog }) => {
               ))}
             </select>
           </div>
-
-          <span className="px-2 py-0.5 rounded font-bold text-[10px] uppercase tracking-wide bg-[#fef7e0] text-[#b06000] border border-[#b06000]/30 hidden md:inline-block">
-            SIMULATED POC DATA
-          </span>
         </div>
 
         {/* Right Side: Role Persona Switcher & Controls */}

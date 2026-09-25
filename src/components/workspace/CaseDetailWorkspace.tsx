@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apfStore } from '../../services/apfStore';
+import { queryStore } from '../../services/queryStore';
+import { APFQuery } from '../../types/queryTypes';
 import {
   APFCase,
   CaseStatus,
@@ -17,6 +19,13 @@ import {
   CENTRAL_UNIT_MASTER,
   getUnitsByTower,
 } from '../../data/centralMasterData';
+import { BuilderExposure360Report } from '../exposure/BuilderExposure360Report';
+import { canAccessExposureReport, ExposureAccessRestrictedCard } from '../../utils/exposurePermissions';
+import { PageHeaderNav } from '../common/PageHeaderNav';
+import { RaiseQueryModal } from '../queries/RaiseQueryModal';
+import { QueryDetailModal } from '../queries/QueryDetailModal';
+import { ValuerMapPinModal } from '../maps/ValuerMapPinModal';
+import { InteractiveSiteMapView } from '../maps/InteractiveSiteMapView';
 import {
   ArrowLeft,
   Building2,
@@ -37,7 +46,20 @@ import {
   Check,
   AlertCircle,
   Hash,
+  MessageSquare,
+  PlusCircle,
+  HelpCircle,
+  UserCheck,
+  ShieldAlert,
+  OctagonAlert,
+  BellRing,
+  X,
+  Sparkles,
+  ChevronDown,
 } from 'lucide-react';
+import { ValuationReportDocPreview } from '../valuation/ValuationReportDocPreview';
+import { ValuerCaseAppModule } from '../valuation/ValuerCaseAppModule';
+import { getOrGenerateBankValuationReport } from '../../services/valuationCalculationEngine';
 
 interface CaseDetailWorkspaceProps {
   caseId: string;
@@ -53,7 +75,25 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
   const c = apfStore.getCaseById(caseId);
 
   // Active tab inside dossier
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'VALUATION' | 'EXPOSURE' | 'APPROVAL' | 'AUDIT'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'VALUATION' | 'EXPOSURE' | 'APPROVAL' | 'COMMUNICATION' | 'AUDIT'>('OVERVIEW');
+
+  // Query Management State
+  const [showRaiseModal, setShowRaiseModal] = useState(false);
+  const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
+  const [caseQueries, setCaseQueries] = useState<APFQuery[]>(() => queryStore.getQueriesForCase(caseId));
+
+  // Google Maps Location Pin State
+  const [showMapPinModal, setShowMapPinModal] = useState(false);
+  const [showValuationDocModal, setShowValuationDocModal] = useState(false);
+  const [showValuerWorkbenchModal, setShowValuerWorkbenchModal] = useState(false);
+  const [isActionConsoleOpen, setIsActionConsoleOpen] = useState(true);
+
+  useEffect(() => {
+    const unsub = queryStore.subscribe(() => {
+      setCaseQueries(queryStore.getQueriesForCase(caseId));
+    });
+    return unsub;
+  }, [caseId]);
 
   // Local state for interactive actions
   // Valuer assignment
@@ -70,6 +110,13 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
   const [comNotes, setComNotes] = useState('Group exposure ₹484.7 Cr well within ₹600 Cr ceiling. Approved Towers E & G clear. Endorsed for Zonal Committee.');
   const [reworkRemarks, setReworkRemarks] = useState('');
   const [showReworkInput, setShowReworkInput] = useState(false);
+
+  // Geofence Breach Review Modal State (For CPA, COM, ACOM & Approver)
+  const [breachReviewModal, setBreachReviewModal] = useState<{
+    isOpen: boolean;
+    decision: 'OVERRIDE_EXCEPTION_WITH_JUSTIFICATION' | 'REJECT_AND_DEMAND_PHYSICAL_VISIT';
+    remarks: string;
+  } | null>(null);
 
   // Approver decision
   const [decisionNotes, setDecisionNotes] = useState('Sanctioned retail APF limit of ₹150 Cr for Kolte-Patil Life Republic i Towers (Buildings E & G) with standard covenants.');
@@ -403,71 +450,75 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
   };
 
   const steps = getWorkflowSteps();
+  const blockingStatus = queryStore.hasBlockingQuery(c.id);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Top Bar: Return & Case Header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#cbd5e1] text-xs font-bold text-[#334e68] hover:bg-slate-50 transition-colors shadow-2xs"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Dashboard</span>
-        </button>
+    <div className="space-y-3 max-w-7xl mx-auto pb-10">
+      {/* Top Bar: Standardized PageHeaderNav with Back Button and Query Actions */}
+      <PageHeaderNav
+        moduleName="APF Underwriting Dossier"
+        pageTitle={`${builder?.legalName || c.builderId} — ${project?.projectName || c.projectId}`}
+        subtitle={`Case Ref: ${c.id} • APF #${c.apfNumber} • Sourcing: ${c.branch}`}
+        badge={c.currentStatus.replace(/_/g, ' ')}
+        onBack={onBack}
+        onGoHome={onBack}
+        rightActions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowRaiseModal(true)}
+              className="px-2.5 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>+ Raise Query</span>
+            </button>
+          </div>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
-            SIMULATED POC DATA
-          </span>
-          <span className="text-xs text-[#829ab1] font-mono">ID: {c.id}</span>
-        </div>
-      </div>
-
-      {/* Sticky Case Identification Card */}
-      <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1] shadow-2xs space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#e2e8f0] pb-4">
+      {/* Compact Case Identification & Progress Card */}
+      <div className="bg-white px-3.5 py-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5">
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold text-white bg-[#0c3148] px-2.5 py-0.5 rounded">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-bold text-white bg-[#0c3148] px-2 py-0.5 rounded">
                 {c.id}
               </span>
-              <span className="text-xs font-mono font-bold text-[#19638c] bg-[#e8f1f5] px-2.5 py-0.5 rounded">
+              <span className="text-[11px] font-mono font-bold text-[#19638c] bg-[#e8f1f5] px-2 py-0.5 rounded">
                 {c.apfNumber}
               </span>
-              <span className="text-xs font-bold text-emerald-800 bg-[#e6f4ea] px-2 py-0.5 rounded flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/80 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" />
                 <span>MahaRERA: {project?.reraNumbers.join(', ')}</span>
               </span>
             </div>
 
-            <h1 className="text-xl font-black text-[#102a43] mt-2">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 mt-1 leading-tight">
               {builder?.legalName} — {project?.projectName}
             </h1>
-            <p className="text-xs text-[#627d98] mt-0.5">
+            <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
               Scope: {selectedTowers.map((t) => t.towerName).join(' & ')} • {project?.locality}, {project?.city} • Sourcing: {c.branch}
             </p>
           </div>
 
-          <div className="flex flex-col sm:items-end gap-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[#829ab1] font-medium">Current Status:</span>
-              <span className="px-3 py-1 rounded-full text-xs font-black bg-[#e8f1f5] text-[#19638c] border border-[#19638c]/20">
+          <div className="flex flex-wrap sm:flex-col sm:items-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-slate-400 font-medium">Status:</span>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e8f1f5] text-[#19638c] border border-[#19638c]/20">
                 {c.currentStatus.replace(/_/g, ' ')}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-[#334e68]">
-              <span className="font-semibold">Current Action Owner:</span>
-              <span className="font-bold text-[#0c3148] bg-slate-100 px-2 py-0.5 rounded">
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+              <span className="font-medium text-slate-400">Owner:</span>
+              <span className="font-semibold text-[#0c3148] bg-slate-100 px-1.5 py-0.2 rounded">
                 {c.currentOwnerRole} ({c.currentOwnerName})
               </span>
             </div>
           </div>
         </div>
 
-        {/* Dynamic Workflow Progress Stepper (Shows strictly real lifecycle progress) */}
-        <div className="overflow-x-auto pt-1">
-          <div className="flex items-center min-w-[840px] justify-between text-xs">
+        {/* Compact Workflow Progress Stepper */}
+        <div className="overflow-x-auto pt-0.5">
+          <div className="flex items-center min-w-[760px] justify-between text-xs py-0.5">
             {steps.map((step, idx) => {
               const isCurrent =
                 (c.currentStatus === 'INITIATED' && step.key === 'ASSIGNED_TO_VALUER') ||
@@ -483,20 +534,20 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
               return (
                 <div key={step.key} className="flex flex-col items-center group">
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs mb-1 transition-all ${
+                    className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] mb-0.5 transition-all ${
                       step.done
                         ? 'bg-[#137333] text-white'
                         : isCurrent
-                        ? 'bg-[#0c3148] text-white ring-4 ring-[#bae6fd] animate-pulse'
-                        : 'bg-[#e2e8f0] text-[#829ab1]'
+                        ? 'bg-[#0c3148] text-white ring-2 ring-[#bae6fd] animate-pulse'
+                        : 'bg-slate-200 text-slate-500'
                     }`}
                   >
                     {step.done ? '✓' : idx + 1}
                   </div>
-                  <span className={`text-[11px] whitespace-nowrap ${isCurrent ? 'font-bold text-[#0c3148]' : 'text-[#627d98]'}`}>
+                  <span className={`text-[10px] whitespace-nowrap leading-tight ${isCurrent ? 'font-bold text-[#0c3148]' : 'text-slate-500'}`}>
                     {step.label}
                   </span>
-                  <span className="text-[9px] font-mono text-[#829ab1] uppercase">{step.role}</span>
+                  <span className="text-[8px] font-mono text-slate-400 uppercase leading-none">{step.role}</span>
                 </div>
               );
             })}
@@ -504,35 +555,194 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
         </div>
       </div>
 
-      {/* ROLE ACTION CONTAINER: Appears ONLY when current user's role owns the activity */}
-      <div className="bg-white rounded-2xl border-2 border-[#19638c] shadow-md p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#e2e8f0] pb-3 gap-2">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-[#e8f1f5] text-[#19638c]">
-              <Sliders className="w-4 h-4" />
-            </span>
-            <div>
-              <h2 className="text-sm font-black uppercase tracking-wider text-[#102a43]">
-                Workflow Action Console
-              </h2>
-              <p className="text-xs text-[#627d98]">
-                Required Next Step: {c.currentStatus.replace(/_/g, ' ')}
-              </p>
+      {/* 🚨 GEOFENCE BREACH & SITE ADDRESS MISMATCH SECURITY BANNER */}
+      {c.latestGeofenceBreach && c.latestGeofenceBreach.status === 'ACTIVE_ALERT' && (
+        <div className="bg-rose-50 border-2 border-rose-500 rounded-2xl p-5 shadow-md space-y-3.5 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-600 text-white shrink-0 shadow-xs">
+                <OctagonAlert className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-black text-rose-950 uppercase tracking-wide">
+                    🚨 Geofence Breach Alert: Valuer Location Mismatch with Registered Site Address
+                  </h3>
+                  <span className="px-2 py-0.5 rounded bg-rose-200 text-rose-950 font-mono text-[11px] font-black uppercase">
+                    {c.latestGeofenceBreach.distanceFromProjectMeters}m Deviation
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-rose-600 text-white font-mono text-[10px] font-bold uppercase tracking-wider">
+                    Pinning Rejected & Blocked
+                  </span>
+                </div>
+                <p className="text-xs text-rose-800 font-medium mt-0.5">
+                  Attempted by: <strong className="text-rose-950">{c.latestGeofenceBreach.attemptedBy}</strong> ({c.latestGeofenceBreach.attemptedRole}) at {c.latestGeofenceBreach.attemptedAt}
+                </p>
+              </div>
+            </div>
+
+            {/* Alerted Authorities Tags */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700">Alert Dispatched To:</span>
+              <span className="px-2 py-0.5 rounded bg-white text-rose-900 border border-rose-300 font-bold text-[10px]">CPA</span>
+              <span className="px-2 py-0.5 rounded bg-white text-rose-900 border border-rose-300 font-bold text-[10px]">COM</span>
+              <span className="px-2 py-0.5 rounded bg-white text-rose-900 border border-rose-300 font-bold text-[10px]">ACOM (Approver)</span>
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 bg-white/90 rounded-xl border border-rose-200 text-xs">
+            <div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase block">Registered Project Site Address</span>
+              <p className="font-semibold text-slate-900 mt-0.5">
+                {c.latestGeofenceBreach.projectAddress}
+              </p>
+              <span className="text-[10px] font-mono text-slate-500">
+                Anchor: {c.latestGeofenceBreach.projectLat.toFixed(5)}, {c.latestGeofenceBreach.projectLng.toFixed(5)} (500m Limit)
+              </span>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold text-rose-700 uppercase block">Attempted Pin Coordinates (Blocked)</span>
+              <p className="font-mono font-bold text-rose-950 mt-0.5">
+                [{c.latestGeofenceBreach.attemptedLat.toFixed(6)}, {c.latestGeofenceBreach.attemptedLng.toFixed(6)}]
+              </p>
+              <span className="text-[11px] text-rose-800">
+                Deviation: <strong>{c.latestGeofenceBreach.distanceFromProjectMeters}m</strong> off-site boundary
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+            <p className="text-[11px] text-rose-900 font-medium">
+              Policy Enforcement: Valuer was blocked from updating the pin. Case workflow cannot proceed without authority review.
+            </p>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setActiveTab('COMMUNICATION')}
+                className="px-3.5 py-1.5 rounded-xl bg-white border border-rose-300 hover:bg-rose-100 text-rose-950 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-rose-600" />
+                <span>
+                  View Blocking Queries (
+                  {
+                    queryStore
+                      .getQueriesForCase(c.id)
+                      .filter((q) => q.isBlocking && q.status !== 'CLOSED' && q.status !== 'CANCELLED').length
+                  }
+                  )
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('VALUATION')}
+                className="px-3.5 py-1.5 rounded-xl bg-white border border-rose-300 hover:bg-rose-100 text-rose-950 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+              >
+                <MapPin className="w-3.5 h-3.5 text-rose-600" />
+                <span>Inspect on Map</span>
+              </button>
+
+              {(currentUser.role === 'COM' || currentUser.role === 'APPROVER' || currentUser.role === 'ADMIN') && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBreachReviewModal({
+                      isOpen: true,
+                      decision: 'REJECT_AND_DEMAND_PHYSICAL_VISIT',
+                      remarks: '',
+                    })
+                  }
+                  className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Authority Reconcile / Sign-Off</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ROLE ACTION CONTAINER: Appears ONLY when current user's role owns the activity */}
+      <div className="bg-white rounded-xl border border-sky-900/30 shadow-2xs p-3 sm:p-3.5 space-y-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-2 gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[#627d98]">You are signed in as:</span>
-            <span className="text-xs font-black text-[#0c3148] bg-slate-100 px-2 py-1 rounded">
-              {currentUser.name} ({currentUser.role})
+            <span className="p-1 rounded-md bg-sky-50 text-sky-800">
+              <Sliders className="w-3.5 h-3.5" />
             </span>
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 leading-tight flex items-center gap-2">
+                <span>Workflow Action Console</span>
+                <span className="text-[10px] font-semibold text-sky-800 bg-sky-50 px-1.5 py-0.2 rounded border border-sky-200">
+                  {c.currentStatus.replace(/_/g, ' ')}
+                </span>
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-[11px] text-slate-500 hidden sm:inline">
+              Assigned: <strong className="text-slate-800">{c.currentOwnerRole}</strong>
+            </span>
+            {isActionOwner && (
+              <button
+                type="button"
+                onClick={() => setIsActionConsoleOpen(!isActionConsoleOpen)}
+                className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded transition-colors"
+              >
+                <span>{isActionConsoleOpen ? 'Collapse' : 'Expand Action Form'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isActionConsoleOpen ? 'rotate-180' : ''}`} />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Action Form or Read-Only Banner */}
         {isActionOwner ? (
-          <div className="space-y-4 pt-1">
-            {/* 1. CPA: Assign Valuer */}
+          isActionConsoleOpen ? (
+            <div className="space-y-3 pt-0.5">
+              {/* Blocking Query Warning Banner */}
+              {blockingStatus.isBlocked && (
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 flex items-start gap-2.5 shadow-2xs">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <div className="font-bold text-xs text-rose-950 flex items-center gap-2 flex-wrap">
+                      <span>Workflow Progression Blocked — Clarification Required</span>
+                      <span className="px-1.5 py-0.2 rounded bg-rose-200 text-rose-900 font-mono text-[9px] uppercase font-black">
+                        Blocking Query Active
+                      </span>
+                    </div>
+                    <p className="text-rose-800 text-[11px] leading-relaxed">
+                      &ldquo;{blockingStatus.blockingQuery?.subject}&rdquo; • Assigned to: <strong>{blockingStatus.blockingQuery?.assignedToRole}</strong>.
+                    </p>
+                    <div className="pt-1 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (blockingStatus.blockingQuery) {
+                            setSelectedQueryId(blockingStatus.blockingQuery.id);
+                          }
+                        }}
+                        className="px-2.5 py-1 rounded-md bg-rose-600 hover:bg-rose-700 text-white font-bold transition-colors text-xs flex items-center gap-1 shadow-2xs"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>View Blocking Query →</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('COMMUNICATION')}
+                        className="px-2.5 py-1 rounded-md bg-white border border-rose-300 text-rose-900 font-semibold hover:bg-rose-100 transition-colors text-xs"
+                      >
+                        Open Communication Tab
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 1. CPA: Assign Valuer */}
             {c.currentStatus === 'INITIATED' && currentUser.role === 'CPA' && (
               <div className="space-y-4">
                 <div className="bg-[#f8fafc] p-4 rounded-xl border border-[#e2e8f0] space-y-3">
@@ -639,27 +849,55 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
                 </div>
               )}
 
-            {/* 3. Valuer: Start Site Visit */}
+            {/* 3. Valuer: Start Site Visit & Google Maps Pinning */}
             {c.currentStatus === 'VALUER_ACCEPTED' &&
               (currentUser.role === 'EXTERNAL_VALUER' || currentUser.role === 'INTERNAL_VALUER') && (
-                <div className="bg-[#e0f2fe] p-5 rounded-xl border border-[#0369a1]/30 space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="bg-[#e0f2fe] p-5 rounded-xl border border-[#0369a1]/30 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <h3 className="text-xs font-bold text-[#0369a1] uppercase tracking-wider flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4" />
-                        <span>Ready to Commence Mobile Site Visit</span>
+                        <MapPin className="w-4 h-4 text-emerald-600" />
+                        <span>Ready to Commence Mobile Site Visit & Location Pinning</span>
                       </h3>
                       <p className="text-xs text-[#102a43] mt-1">
-                        Click below to lock your hardware GPS coordinates against project geofence [
+                        Pin your physical inspection spot on Google Maps to verify coordinates against the project 500m geofence [
                         {project?.latLong.lat}, {project?.latLong.lng}].
                       </p>
                     </div>
-                    <span className="px-2.5 py-1 rounded bg-white text-[#0369a1] text-xs font-bold border border-[#0369a1]/20">
-                      Geofence: INSIDE_BOUNDARY (±3.2m)
-                    </span>
+                    {c.valuerAssignment?.pinnedLocation ? (
+                      <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold border border-emerald-300 flex items-center gap-1.5 self-start sm:self-auto">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Google Maps Pin Locked ({c.valuerAssignment.pinnedLocation.lat.toFixed(4)}, {c.valuerAssignment.pinnedLocation.lng.toFixed(4)})</span>
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded bg-white text-[#0369a1] text-xs font-bold border border-[#0369a1]/20 self-start sm:self-auto">
+                        Geofence: 500m Monitored Perimeter
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex justify-end pt-2">
+                  {c.valuerAssignment?.pinnedLocation && (
+                    <div className="p-3 bg-white/90 rounded-xl border border-[#0369a1]/20 text-xs space-y-1">
+                      <div className="flex items-center justify-between font-mono text-[11px] text-slate-600">
+                        <span>Lat: {c.valuerAssignment.pinnedLocation.lat.toFixed(6)}, Lng: {c.valuerAssignment.pinnedLocation.lng.toFixed(6)}</span>
+                        <span className="text-emerald-700 font-bold">Accuracy: ±{c.valuerAssignment.pinnedLocation.accuracyMeters.toFixed(1)}m</span>
+                      </div>
+                      <div className="text-slate-800 font-medium">
+                        📍 {c.valuerAssignment.pinnedLocation.address || 'Project Inspection Point'}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[#0369a1]/20">
+                    <button
+                      type="button"
+                      onClick={() => setShowMapPinModal(true)}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-2"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      <span>{c.valuerAssignment?.pinnedLocation ? 'Update Pin on Google Maps' : '📍 Pin My Location on Google Maps'}</span>
+                    </button>
+
                     <button
                       onClick={handleStartSiteVisit}
                       className="px-5 py-2.5 bg-[#0369a1] hover:bg-[#0284c7] text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center gap-2"
@@ -681,6 +919,41 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
                       {c.auditTrail.find((a) => a.action === 'SENT_BACK_FOR_REWORK')?.remarks || 'Please re-verify'}
                     </div>
                   )}
+
+                  {/* Google Maps Pin Bar */}
+                  <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <MapPin className="w-4 h-4 text-emerald-700" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900 flex items-center gap-2">
+                          <span>Physical Site Visit GPS Status</span>
+                          {c.valuerAssignment?.pinnedLocation ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+                              Google Maps Verified ({c.valuerAssignment.pinnedLocation.lat.toFixed(4)}, {c.valuerAssignment.pinnedLocation.lng.toFixed(4)})
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-bold">
+                              Pin Recommended
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {c.valuerAssignment?.pinnedLocation?.address || 'Site inspection within project geofence boundary.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowMapPinModal(true)}
+                      className="px-3 py-1.5 bg-white border border-sky-300 hover:bg-sky-100 text-sky-900 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{c.valuerAssignment?.pinnedLocation ? 'View / Adjust Pin on Google Maps' : '📍 Pin Location on Google Maps'}</span>
+                    </button>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#f8fafc] p-4 rounded-xl border border-[#e2e8f0]">
                     <div>
@@ -969,87 +1242,103 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
               </div>
             )}
           </div>
-        ) : (
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-[#627d98] flex items-center justify-between">
+        ) : null) : (
+          <div className="p-2.5 px-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>
-                Viewing in <strong>Read-Only Mode</strong> as <strong>{currentUser.role}</strong>. Current stage
-                is assigned to <strong>{c.currentOwnerRole}</strong> ({c.currentOwnerName}). Action controls
-                are strictly restricted to the owner.
+              <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="text-[11px]">
+                Viewing in <strong>Read-Only Mode</strong> ({currentUser.role}). Next action assigned to <strong>{c.currentOwnerRole}</strong> ({c.currentOwnerName}).
               </span>
             </div>
-            <span className="text-[10px] font-mono uppercase text-slate-400">RBAC Enforced</span>
+            <span className="text-[9px] font-mono uppercase text-slate-400">RBAC</span>
           </div>
         )}
       </div>
 
       {/* Dossier Tabs: Overview, Valuation, Exposure 360, Decision & LOS, Audit Trail */}
-      <div className="bg-white rounded-2xl border border-[#cbd5e1] shadow-2xs overflow-hidden">
-        <div className="flex items-center border-b border-[#e2e8f0] px-4 bg-[#f8fafc] overflow-x-auto text-xs font-bold text-[#627d98]">
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+        <div className="flex items-center border-b border-slate-200 px-3 bg-slate-50/70 overflow-x-auto text-xs font-semibold text-slate-600">
           <button
             onClick={() => setActiveTab('OVERVIEW')}
-            className={`py-3 px-4 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`py-2 px-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 text-xs ${
               activeTab === 'OVERVIEW'
-                ? 'border-[#19638c] text-[#19638c]'
-                : 'border-transparent hover:text-[#102a43]'
+                ? 'border-[#0c3148] text-[#0c3148] font-bold'
+                : 'border-transparent hover:text-slate-900'
             }`}
           >
-            <Building2 className="w-4 h-4" />
+            <Building2 className="w-3.5 h-3.5" />
             <span>Overview & Scope</span>
           </button>
 
           <button
             onClick={() => setActiveTab('VALUATION')}
-            className={`py-3 px-4 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`py-2 px-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 text-xs ${
               activeTab === 'VALUATION'
-                ? 'border-[#19638c] text-[#19638c]'
-                : 'border-transparent hover:text-[#102a43]'
+                ? 'border-[#0c3148] text-[#0c3148] font-bold'
+                : 'border-transparent hover:text-slate-900'
             }`}
           >
-            <Camera className="w-4 h-4" />
-            <span>Valuation & Evidence ({c.siteVisitEvidence?.length || 0})</span>
+            <Camera className="w-3.5 h-3.5" />
+            <span>Valuation ({c.siteVisitEvidence?.length || 0})</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('EXPOSURE')}
-            className={`py-3 px-4 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-              activeTab === 'EXPOSURE'
-                ? 'border-[#19638c] text-[#19638c]'
-                : 'border-transparent hover:text-[#102a43]'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Exposure 360 {c.exposureSnapshot ? '✓' : '(Pending)'}</span>
-          </button>
+          {/* TAB 3 BUTTON: Restricted strictly to CPA, COM, ACOM, RCOM, ZCOM, NCOM. Valuers cannot access */}
+          {canAccessExposureReport(currentUser.role) && (
+            <button
+              onClick={() => setActiveTab('EXPOSURE')}
+              className={`py-2 px-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 text-xs ${
+                activeTab === 'EXPOSURE'
+                  ? 'border-[#0c3148] text-[#0c3148] font-bold'
+                  : 'border-transparent hover:text-slate-900'
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Exposure 360 {c.exposureSnapshot ? '✓' : '(Pending)'}</span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('APPROVAL')}
-            className={`py-3 px-4 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`py-2 px-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 text-xs ${
               activeTab === 'APPROVAL'
-                ? 'border-[#19638c] text-[#19638c]'
-                : 'border-transparent hover:text-[#102a43]'
+                ? 'border-[#0c3148] text-[#0c3148] font-bold'
+                : 'border-transparent hover:text-slate-900'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Decision & LOS Payload</span>
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Decision & LOS</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('COMMUNICATION')}
+            className={`py-2 px-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 text-xs ${
+              activeTab === 'COMMUNICATION'
+                ? 'border-[#0c3148] text-[#0c3148] font-bold'
+                : 'border-transparent hover:text-slate-900'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Queries ({caseQueries.length})</span>
+            {blockingStatus.isBlocked && (
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" title="Blocking query active" />
+            )}
           </button>
 
           <button
             onClick={() => setActiveTab('AUDIT')}
-            className={`py-3 px-4 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`py-2 px-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 text-xs ${
               activeTab === 'AUDIT'
-                ? 'border-[#19638c] text-[#19638c]'
-                : 'border-transparent hover:text-[#102a43]'
+                ? 'border-[#0c3148] text-[#0c3148] font-bold'
+                : 'border-transparent hover:text-slate-900'
             }`}
           >
-            <History className="w-4 h-4" />
-            <span>Real-Time Audit Timeline ({c.auditTrail.length})</span>
+            <History className="w-3.5 h-3.5" />
+            <span>Audit Trail ({c.auditTrail.length})</span>
           </button>
         </div>
 
         {/* Tab Contents */}
-        <div className="p-6 text-xs text-[#102a43]">
+        <div className="p-4 sm:p-5 text-xs text-slate-800">
           {/* TAB 1: OVERVIEW & SCOPE */}
           {activeTab === 'OVERVIEW' && (
             <div className="space-y-6">
@@ -1119,8 +1408,8 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
                         </p>
 
                         <div className="pt-2 border-t border-[#e2e8f0] text-[10px] text-[#829ab1] flex items-center justify-between">
-                          <span>{towerUnits.length} Demo Units mapped</span>
-                          <span className="font-mono">SIMULATED_POC_UNIT = true</span>
+                          <span>{towerUnits.length} Sanctioned Units mapped</span>
+                          <span className="font-semibold text-emerald-700">VERIFIED IN CATALOGUE</span>
                         </div>
                       </div>
                     );
@@ -1132,7 +1421,51 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
 
           {/* TAB 2: VALUATION & EVIDENCE */}
           {activeTab === 'VALUATION' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
+              {/* Technical Appraisal & Valuation Action Bar */}
+              <div className="p-3 bg-slate-900 text-white rounded-xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0 border border-sky-400/30">
+                    <Building2 className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-white tracking-wide uppercase">
+                        Technical Appraisal & Valuation Dossier
+                      </h4>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-sky-950 text-sky-300 border border-sky-800">
+                        Field Catalogue Compliant
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      Structural progress, direct comparable sales, infrastructure scores & digital verification.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  {(currentUser.role === 'EXTERNAL_VALUER' || currentUser.role === 'INTERNAL_VALUER' || currentUser.role === 'CPA' || currentUser.role === 'ADMIN') && (
+                    <button
+                      type="button"
+                      onClick={() => setShowValuerWorkbenchModal(true)}
+                      className="px-2.5 py-1 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-md shadow-2xs transition-all flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                      <span>Valuer Workbench</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowValuationDocModal(true)}
+                    className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-md border border-white/20 shadow-2xs transition-all flex items-center gap-1.5"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-sky-300" />
+                    <span>Report Document</span>
+                  </button>
+                </div>
+              </div>
+
               {c.valuationReport ? (
                 <div className="space-y-6">
                   {/* Report Card */}
@@ -1192,6 +1525,21 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
                       <p><strong>Valuer Recommendation:</strong> {c.valuationReport.valuerRecommendation}</p>
                       <p className="text-[11px] text-[#829ab1] font-mono">{c.valuationReport.digitalSignature}</p>
                     </div>
+                  </div>
+
+                  {/* Interactive Google Map & Geofence Section */}
+                  <div className="space-y-2">
+                    <InteractiveSiteMapView
+                      caseData={c}
+                      project={project}
+                      canPin={
+                        currentUser.role === 'EXTERNAL_VALUER' ||
+                        currentUser.role === 'INTERNAL_VALUER' ||
+                        currentUser.role === 'CPA' ||
+                        currentUser.role === 'ADMIN'
+                      }
+                      onOpenPinModal={() => setShowMapPinModal(true)}
+                    />
                   </div>
 
                   {/* Geotagged Site Evidence Gallery */}
@@ -1259,111 +1607,48 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="py-12 text-center text-[#829ab1]">
-                  <Camera className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="font-semibold">Valuation Report not yet submitted.</p>
-                  <p className="text-[11px]">
-                    Once the assigned valuer completes site inspection and clicks Submit, the full technical
-                    report and geotagged annexures will appear here.
-                  </p>
+                <div className="space-y-6">
+                  {/* Interactive Google Map with Pinning Access before submission */}
+                  <InteractiveSiteMapView
+                    caseData={c}
+                    project={project}
+                    canPin={
+                      currentUser.role === 'EXTERNAL_VALUER' ||
+                      currentUser.role === 'INTERNAL_VALUER' ||
+                      currentUser.role === 'CPA' ||
+                      currentUser.role === 'ADMIN'
+                    }
+                    onOpenPinModal={() => setShowMapPinModal(true)}
+                  />
+
+                  <div className="py-8 text-center text-[#829ab1] bg-white rounded-2xl border border-dashed border-slate-200">
+                    <Camera className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="font-semibold text-slate-700">Valuation Report not yet submitted.</p>
+                    <p className="text-[11px] text-slate-500 mt-1 max-w-md mx-auto">
+                      Use the &quot;Pin My Location on Google Maps&quot; button above to record your site inspection coordinates within the 500m geofence perimeter.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 3: EXPOSURE 360 */}
+          {/* TAB 3: EXPOSURE 360 (Guarded by Credit Operations Policy) */}
           {activeTab === 'EXPOSURE' && (
             <div className="space-y-6">
-              {c.exposureSnapshot ? (
-                <div className="space-y-6">
-                  {/* Summary Bar */}
-                  <div className="bg-[#f8fafc] p-4 rounded-xl border border-[#cbd5e1] grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div>
-                      <span className="text-[10px] font-bold text-[#829ab1] uppercase">Aggregate Group Exposure</span>
-                      <div className="text-xl font-black text-[#102a43]">
-                        ₹{c.exposureSnapshot.aggregateGroupExposureCr} Cr
-                      </div>
-                      <span className="text-[10px] text-[#627d98]">of ₹{c.exposureSnapshot.groupSanctionLimitCr} Cr Cap</span>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] font-bold text-[#829ab1] uppercase">Group Headroom</span>
-                      <div className="text-xl font-black text-[#137333]">
-                        ₹{c.exposureSnapshot.groupHeadroomCr.toFixed(1)} Cr
-                      </div>
-                      <span className="text-[10px] text-emerald-700">Available headroom</span>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] font-bold text-[#829ab1] uppercase">Existing Project APF</span>
-                      <div className="text-xl font-black text-[#19638c]">
-                        ₹{c.exposureSnapshot.existingApfExposureCr} Cr
-                      </div>
-                      <span className="text-[10px] text-[#627d98]">112 Live Mortgages</span>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] font-bold text-[#829ab1] uppercase">Proposed Retail APF</span>
-                      <div className="text-xl font-black text-[#0c3148]">
-                        ₹{c.exposureSnapshot.retailLinkedExposureCr} Cr
-                      </div>
-                      <span className="text-[10px] text-[#627d98]">Underwriting Scope</span>
-                    </div>
-                  </div>
-
-                  {/* Exposure Buckets Table */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-bold text-[#102a43] uppercase tracking-wider">
-                        Multi-Source Reconciled Exposure Ledger
-                      </h3>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
-                        ALL ENTRIES TAGGED SIMULATED POC DATA
-                      </span>
-                    </div>
-
-                    <div className="overflow-x-auto border border-[#cbd5e1] rounded-xl">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-[#f1f5f9] text-[#334e68] font-bold text-[10px] uppercase">
-                          <tr>
-                            <th className="p-3">Exposure Bucket</th>
-                            <th className="p-3">Sanctioned</th>
-                            <th className="p-3">Outstanding</th>
-                            <th className="p-3">Source Channel</th>
-                            <th className="p-3">As-Of Date</th>
-                            <th className="p-3">Verification</th>
-                            <th className="p-3">Facility Notes</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#e2e8f0]">
-                          {c.exposureSnapshot.buckets.map((b, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="p-3 font-bold text-[#102a43]">{b.category}</td>
-                              <td className="p-3 font-mono font-semibold">₹{b.sanctionedCr.toFixed(1)} Cr</td>
-                              <td className="p-3 font-mono font-bold text-[#19638c]">₹{b.outstandingCr.toFixed(1)} Cr</td>
-                              <td className="p-3 text-[11px] text-[#627d98]">{b.source}</td>
-                              <td className="p-3 font-mono text-[10px] text-[#829ab1]">{b.asOfDate}</td>
-                              <td className="p-3">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800">
-                                  Reconciled
-                                </span>
-                              </td>
-                              <td className="p-3 text-[11px] text-[#334e68]">{b.notes}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+              {canAccessExposureReport(currentUser.role) ? (
+                <BuilderExposure360Report
+                  currentUser={currentUser}
+                  caseId={c.id}
+                  builderId={c.builderId}
+                />
               ) : (
-                <div className="py-12 text-center text-[#829ab1]">
-                  <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="font-semibold">Exposure 360 will be generated automatically upon Valuer submission.</p>
-                  <p className="text-[11px]">
-                    Per the functional spec, multi-source exposure is reconciled when the independent report is logged.
-                  </p>
-                </div>
+                <ExposureAccessRestrictedCard
+                  currentRole={currentUser.role}
+                  userName={currentUser.name}
+                  onNavigateBack={() => setActiveTab('OVERVIEW')}
+                  onNavigateToValuation={() => setActiveTab('VALUATION')}
+                />
               )}
             </div>
           )}
@@ -1466,6 +1751,154 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
             </div>
           )}
 
+          {/* TAB: COMMUNICATION & QUERIES */}
+          {activeTab === 'COMMUNICATION' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-[#0a2540] uppercase tracking-wider">
+                      In-App Case Communication & Query Resolution
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-[10px]">
+                      {caseQueries.length} Threads
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Formal audit-tracked clarifications, blocking inputs, and inter-role communications for {c.id}.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowRaiseModal(true)}
+                  className="px-4 py-2 rounded-xl bg-[#0c3148] hover:bg-[#19638c] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>+ Raise Query / Request Input</span>
+                </button>
+              </div>
+
+              {/* Status Summary Pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-[#f8fafc] p-3 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Queries</span>
+                  <span className="text-lg font-black text-slate-800">{caseQueries.length}</span>
+                </div>
+                <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">Need Input</span>
+                  <span className="text-lg font-black text-amber-900">
+                    {caseQueries.filter((q) => q.status === 'INPUT_REQUIRED').length}
+                  </span>
+                </div>
+                <div className="bg-rose-50 p-3 rounded-xl border border-rose-200">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 block">Blocking Workflow</span>
+                  <span className="text-lg font-black text-rose-900">
+                    {caseQueries.filter((q) => q.isBlocking && q.status !== 'CLOSED' && q.status !== 'CANCELLED').length}
+                  </span>
+                </div>
+                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Resolved / Closed</span>
+                  <span className="text-lg font-black text-emerald-900">
+                    {caseQueries.filter((q) => q.status === 'CLOSED').length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Queries List */}
+              <div className="space-y-3">
+                {caseQueries.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+                    <p className="font-semibold text-slate-700">No communication queries raised on this case.</p>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Need clarification or additional documents? Click &quot;+ Raise Query / Request Input&quot; above.
+                    </p>
+                  </div>
+                ) : (
+                  caseQueries.map((q) => {
+                    const isBlocking = q.isBlocking && q.status !== 'CLOSED' && q.status !== 'CANCELLED';
+                    const lastMsg = q.messages[q.messages.length - 1];
+
+                    return (
+                      <div
+                        key={q.id}
+                        onClick={() => setSelectedQueryId(q.id)}
+                        className={`p-4 rounded-xl border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-md ${
+                          isBlocking
+                            ? 'border-rose-300 ring-2 ring-rose-200/50 bg-rose-50/20'
+                            : 'border-slate-200 hover:border-sky-300'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-bold text-xs text-[#0a2540]">{q.id}</span>
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                              {q.category}
+                            </span>
+                            {isBlocking && (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white flex items-center gap-1 animate-pulse">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>Blocking Workflow</span>
+                              </span>
+                            )}
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                q.status === 'INPUT_REQUIRED'
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  : q.status === 'INPUT_RECEIVED'
+                                  ? 'bg-sky-100 text-sky-900 border border-sky-300'
+                                  : q.status === 'CLOSED'
+                                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                  : 'bg-slate-100 text-slate-800'
+                              }`}
+                            >
+                              {q.status.replace('_', ' ')}
+                            </span>
+                          </div>
+
+                          <span className="text-[10px] font-mono text-slate-400">{q.updatedAt}</span>
+                        </div>
+
+                        <h4 className="text-sm font-black text-slate-900 mt-2">{q.subject}</h4>
+
+                        {lastMsg && (
+                          <p className="text-xs text-slate-600 mt-1 line-clamp-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/60 font-medium">
+                            <span className="font-bold text-[#0c3148]">{lastMsg.senderName} ({lastMsg.senderRole}):</span>{' '}
+                            {lastMsg.message}
+                          </p>
+                        )}
+
+                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-4 text-slate-500 text-[11px]">
+                            <span>Raised by: <strong className="text-slate-700">{q.raisedByUserRole} ({q.raisedByUserName})</strong></span>
+                            <span>Assigned to: <strong className="text-[#0c3148] font-bold">{q.assignedToRole}</strong></span>
+                            {q.relatedField && (
+                              <span className="text-sky-800 bg-sky-50 px-2 py-0.5 rounded font-medium border border-sky-200">
+                                Ref: {q.relatedField}
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedQueryId(q.id);
+                            }}
+                            className="text-xs font-bold text-sky-700 hover:text-sky-900 flex items-center gap-1 self-end sm:self-auto"
+                          >
+                            <span>Open Thread & Reply ({q.messages.length}) →</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
           {/* TAB 5: AUDIT TIMELINE */}
           {activeTab === 'AUDIT' && (
             <div className="space-y-4">
@@ -1502,6 +1935,267 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
           )}
         </div>
       </div>
+
+      {/* Raise Query Modal */}
+      {showRaiseModal && (
+        <RaiseQueryModal
+          isOpen={showRaiseModal}
+          onClose={() => setShowRaiseModal(false)}
+          currentUser={currentUser}
+          caseId={c.id}
+          builderId={c.builderId}
+          builderName={builder?.legalName || c.builderId}
+          projectId={c.projectId}
+          projectName={project?.projectName || c.projectId}
+        />
+      )}
+
+      {/* Query Detail Modal */}
+      {selectedQueryId && (
+        <QueryDetailModal
+          isOpen={Boolean(selectedQueryId)}
+          onClose={() => setSelectedQueryId(null)}
+          query={queryStore.getQueryById(selectedQueryId) || null}
+          currentUser={currentUser}
+        />
+      )}
+
+      {/* Google Maps Valuer Location Pin Modal */}
+      {showMapPinModal && (
+        <ValuerMapPinModal
+          isOpen={showMapPinModal}
+          onClose={() => setShowMapPinModal(false)}
+          caseData={c}
+          project={project}
+          onLocationPinned={(loc) => {
+            // Updated location pinned
+          }}
+        />
+      )}
+
+      {/* Geofence Breach Authority Review Modal */}
+      {breachReviewModal?.isOpen && c.latestGeofenceBreach && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">Geofence Compliance Review & Resolution</h3>
+                  <p className="text-[11px] text-slate-300">Case ID: {c.id} • Registered Project: {project?.projectName}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBreachReviewModal(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-950 space-y-1.5">
+                <div className="font-bold flex items-center justify-between">
+                  <span>Reported Incident</span>
+                  <span className="font-mono text-rose-700 bg-white px-2 py-0.5 rounded border border-rose-300 font-black">
+                    ±{c.latestGeofenceBreach.distanceFromProjectMeters}m Deviation
+                  </span>
+                </div>
+                <p>
+                  Valuer <strong>{c.latestGeofenceBreach.attemptedBy}</strong> attempted to lock coordinates at [
+                  {c.latestGeofenceBreach.attemptedLat.toFixed(5)}, {c.latestGeofenceBreach.attemptedLng.toFixed(5)}], which deviates from the project site address. The pin was blocked.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Select Authority Supervisory Action:
+                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  <label
+                    className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      breachReviewModal.decision === 'REJECT_AND_DEMAND_PHYSICAL_VISIT'
+                        ? 'bg-rose-50 border-rose-400 ring-2 ring-rose-200'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="breachDecision"
+                      checked={breachReviewModal.decision === 'REJECT_AND_DEMAND_PHYSICAL_VISIT'}
+                      onChange={() =>
+                        setBreachReviewModal({
+                          ...breachReviewModal,
+                          decision: 'REJECT_AND_DEMAND_PHYSICAL_VISIT',
+                        })
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">
+                        Enforce Strict Physical Re-Inspection & Maintain Blocking Query
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Reject deviation. Require the valuer to physically revisit the exact site coordinates or re-take geotagged inspection evidence.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      breachReviewModal.decision === 'OVERRIDE_EXCEPTION_WITH_JUSTIFICATION'
+                        ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-200'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="breachDecision"
+                      checked={breachReviewModal.decision === 'OVERRIDE_EXCEPTION_WITH_JUSTIFICATION'}
+                      onChange={() =>
+                        setBreachReviewModal({
+                          ...breachReviewModal,
+                          decision: 'OVERRIDE_EXCEPTION_WITH_JUSTIFICATION',
+                        })
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">
+                        Supervisory Exception Override with Documented Justification
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Authority certifies physical inspection took place at peripheral boundary / entry gate. Resolves blocking queries and clears the active alert.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Authority Audit Remarks & Justification: <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={breachReviewModal.remarks}
+                  onChange={(e) =>
+                    setBreachReviewModal({
+                      ...breachReviewModal,
+                      remarks: e.target.value,
+                    })
+                  }
+                  placeholder="Enter detailed credit rationale, supervisory review notes, or instructions to valuer..."
+                  className="w-full p-2.5 text-xs rounded-xl border border-slate-300 font-medium text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-[#19638c]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBreachReviewModal(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!breachReviewModal.remarks.trim()}
+                  onClick={() => {
+                    const success = apfStore.reviewGeofenceBreach(
+                      c.id,
+                      breachReviewModal.decision,
+                      breachReviewModal.remarks,
+                      currentUser
+                    );
+                    if (success) {
+                      if (breachReviewModal.decision === 'OVERRIDE_EXCEPTION_WITH_JUSTIFICATION') {
+                        const queries = queryStore.getQueriesForCase(c.id);
+                        queries.forEach((q: APFQuery) => {
+                          if (q.category === 'Valuation' || q.category === 'Technical' || q.subject.includes('Geofence')) {
+                            queryStore.updateQueryStatus(
+                              q.id,
+                              'CLOSED',
+                              currentUser,
+                              `Authority Override: ${breachReviewModal.remarks}`
+                            );
+                          }
+                        });
+                      }
+                      setBreachReviewModal(null);
+                    }
+                  }}
+                  className={`px-5 py-2 rounded-xl text-white font-bold text-xs shadow-md transition-all ${
+                    !breachReviewModal.remarks.trim()
+                      ? 'bg-slate-400 cursor-not-allowed'
+                      : breachReviewModal.decision === 'OVERRIDE_EXCEPTION_WITH_JUSTIFICATION'
+                      ? 'bg-emerald-600 hover:bg-emerald-700'
+                      : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
+                >
+                  Confirm & Submit Decision
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 1. Official Bank Valuation Report Document Preview Modal */}
+      {showValuationDocModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[94vh] overflow-y-auto shadow-2xl relative p-4 sm:p-6">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-200 sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-sky-100 text-sky-900">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>Official Bank Technical & Valuation Report</span>
+                    <span className="text-xs font-mono font-normal px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                      {c.id}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Field Catalogue Compliant • Bank Due Diligence Model • Version {c.valuationReport?.reportVersion || 'v1.0'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowValuationDocModal(false)}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <ValuationReportDocPreview
+              reportData={getOrGenerateBankValuationReport(c)}
+              onClose={() => setShowValuationDocModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 2. Full 12-Section PROVAL Valuer App Workbench Modal */}
+      {showValuerWorkbenchModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-7xl max-h-[96vh] overflow-y-auto shadow-2xl relative p-4 sm:p-6">
+            <ValuerCaseAppModule
+              caseData={c}
+              currentUser={currentUser}
+              onBack={() => setShowValuerWorkbenchModal(false)}
+              onSubmitSuccess={() => {
+                setShowValuerWorkbenchModal(false);
+              }}
+              onRaiseQuery={() => {
+                setShowRaiseModal(true);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

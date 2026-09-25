@@ -88,9 +88,6 @@ export const BuilderExposureCard: React.FC<BuilderExposureCardProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-[#102a43]">Exposure 360 & Concentration Footprint</h3>
-            <span className="px-2 py-0.5 rounded font-bold text-[10px] uppercase bg-[#fef7e0] text-[#b06000] border border-[#b06000]/30">
-              SIMULATED POC DATA
-            </span>
           </div>
           <p className="text-xs text-[#627d98] mt-0.5">
             Entity: <strong>{builderName}</strong> ({groupName}) • Automated multi-source reconciliation

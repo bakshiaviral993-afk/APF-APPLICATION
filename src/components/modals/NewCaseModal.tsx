@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apfStore } from '../../services/apfStore';
+import { masterStore } from '../../services/masterStore';
 import {
-  CENTRAL_BUILDER_MASTER,
-  CENTRAL_PROJECT_MASTER,
-  CENTRAL_PHASE_MASTER,
-  CENTRAL_TOWER_MASTER,
-  getProjectsByBuilder,
-  getPhasesByProject,
-  getTowersByProject,
-} from '../../data/centralMasterData';
+  BuilderMaster,
+  ProjectMaster,
+  PhaseMaster,
+  TowerMaster,
+} from '../../types/apfTransaction';
 import {
   X,
   Building2,
@@ -31,21 +29,22 @@ export const NewCaseModal: React.FC<NewCaseModalProps> = ({
   onClose,
   onCaseCreated,
 }) => {
-  // Cascading Master State
-  const [selectedBuilderId, setSelectedBuilderId] = useState(CENTRAL_BUILDER_MASTER[0].id);
-  const projectsForBuilder = getProjectsByBuilder(selectedBuilderId);
-  const [selectedProjectId, setSelectedProjectId] = useState(projectsForBuilder[0]?.id || '');
+  // Cascading Master State from Dynamic Master Store (ACTIVE & APPROVED ONLY)
+  const selectableBuilders: BuilderMaster[] = masterStore.getSelectableBuilders();
+  const [selectedBuilderId, setSelectedBuilderId] = useState<string>(selectableBuilders[0]?.id || '');
+  const projectsForBuilder: ProjectMaster[] = masterStore.getSelectableProjects(selectedBuilderId);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectsForBuilder[0]?.id || '');
 
   // Update project when builder changes
   const handleBuilderChange = (bId: string) => {
     setSelectedBuilderId(bId);
-    const prjs = getProjectsByBuilder(bId);
+    const prjs: ProjectMaster[] = masterStore.getSelectableProjects(bId);
     if (prjs.length > 0) {
       setSelectedProjectId(prjs[0].id);
-      const phs = getPhasesByProject(prjs[0].id);
+      const phs: PhaseMaster[] = masterStore.getSelectablePhases(prjs[0].id);
       setSelectedPhaseId(phs[0]?.id || '');
-      const twrs = getTowersByProject(prjs[0].id);
-      setSelectedTowerIds(twrs.map((t) => t.id));
+      const twrs: TowerMaster[] = masterStore.getSelectableTowers(prjs[0].id, phs[0]?.id);
+      setSelectedTowerIds(twrs.map((t: TowerMaster) => t.id));
     } else {
       setSelectedProjectId('');
       setSelectedPhaseId('');
@@ -53,21 +52,21 @@ export const NewCaseModal: React.FC<NewCaseModalProps> = ({
     }
   };
 
-  const phasesForProject = getPhasesByProject(selectedProjectId);
-  const [selectedPhaseId, setSelectedPhaseId] = useState(phasesForProject[0]?.id || '');
+  const phasesForProject: PhaseMaster[] = masterStore.getSelectablePhases(selectedProjectId);
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string>(phasesForProject[0]?.id || '');
 
-  const towersForProject = getTowersByProject(selectedProjectId);
+  const towersForProject: TowerMaster[] = masterStore.getSelectableTowers(selectedProjectId, selectedPhaseId);
   const [selectedTowerIds, setSelectedTowerIds] = useState<string[]>(
-    towersForProject.map((t) => t.id)
+    towersForProject.map((t: TowerMaster) => t.id)
   );
 
   // Update phases & towers when project changes
   const handleProjectChange = (pId: string) => {
     setSelectedProjectId(pId);
-    const phs = getPhasesByProject(pId);
+    const phs: PhaseMaster[] = masterStore.getSelectablePhases(pId);
     setSelectedPhaseId(phs[0]?.id || '');
-    const twrs = getTowersByProject(pId);
-    setSelectedTowerIds(twrs.map((t) => t.id));
+    const twrs: TowerMaster[] = masterStore.getSelectableTowers(pId, phs[0]?.id);
+    setSelectedTowerIds(twrs.map((t: TowerMaster) => t.id));
   };
 
   // Request details
@@ -88,8 +87,8 @@ export const NewCaseModal: React.FC<NewCaseModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentBuilder = CENTRAL_BUILDER_MASTER.find((b) => b.id === selectedBuilderId);
-  const currentProject = CENTRAL_PROJECT_MASTER.find((p) => p.id === selectedProjectId);
+  const currentBuilder = masterStore.getBuilderById(selectedBuilderId);
+  const currentProject = masterStore.getProjectById(selectedProjectId);
 
   const toggleTower = (tId: string) => {
     if (selectedTowerIds.includes(tId)) {
@@ -168,7 +167,7 @@ export const NewCaseModal: React.FC<NewCaseModalProps> = ({
                   onChange={(e) => handleBuilderChange(e.target.value)}
                   className="w-full p-2 rounded-lg border border-[#cbd5e1] bg-white font-semibold text-xs focus:ring-2 focus:ring-[#19638c]"
                 >
-                  {CENTRAL_BUILDER_MASTER.map((b) => (
+                  {selectableBuilders.map((b: BuilderMaster) => (
                     <option key={b.id} value={b.id}>
                       {b.legalName} ({b.city})
                     </option>
@@ -223,7 +222,7 @@ export const NewCaseModal: React.FC<NewCaseModalProps> = ({
                   onChange={(e) => handleProjectChange(e.target.value)}
                   className="w-full p-2 rounded-lg border border-[#cbd5e1] bg-white font-semibold text-xs focus:ring-2 focus:ring-[#19638c]"
                 >
-                  {projectsForBuilder.map((p) => (
+                  {projectsForBuilder.map((p: ProjectMaster) => (
                     <option key={p.id} value={p.id}>
                       {p.projectName} — {p.locality}
                     </option>
@@ -246,7 +245,7 @@ export const NewCaseModal: React.FC<NewCaseModalProps> = ({
                   onChange={(e) => setSelectedPhaseId(e.target.value)}
                   className="w-full p-2 rounded-lg border border-[#cbd5e1] bg-white font-semibold text-xs focus:ring-2 focus:ring-[#19638c]"
                 >
-                  {phasesForProject.map((ph) => (
+                  {phasesForProject.map((ph: PhaseMaster) => (
                     <option key={ph.id} value={ph.id}>
                       {ph.phaseName} ({ph.reraNumber})
                     </option>
@@ -257,7 +256,7 @@ export const NewCaseModal: React.FC<NewCaseModalProps> = ({
               <div>
                 <label className="block font-bold text-[#334e68] mb-1">Tower Scope * (Multi-Select)</label>
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {towersForProject.map((t) => {
+                  {towersForProject.map((t: TowerMaster) => {
                     const isChecked = selectedTowerIds.includes(t.id);
                     return (
                       <button

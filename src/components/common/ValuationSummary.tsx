@@ -35,9 +35,6 @@ export const ValuationSummary: React.FC<ValuationSummaryProps> = ({ data }) => {
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-[#102a43]">Valuation Summary & Formal Technical Grade</h3>
-            <span className="px-2 py-0.5 rounded font-bold text-[10px] uppercase bg-[#fef7e0] text-[#b06000] border border-[#b06000]/30">
-              SIMULATED POC DATA
-            </span>
           </div>
           <p className="text-xs text-[#627d98] mt-0.5">
             Independent Technical Appraisal by {data.valuerAgency} ({data.empanelmentCode})

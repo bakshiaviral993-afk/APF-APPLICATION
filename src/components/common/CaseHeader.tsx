@@ -34,9 +34,6 @@ export const CaseHeader: React.FC<CaseHeaderProps> = ({
             <span className="px-2 py-0.5 rounded bg-[#e8f1f5] text-[#19638c] text-[11px] font-bold border border-[#19638c]/20">
               {projectSeed.city.toUpperCase()} CLUSTER
             </span>
-            <span className="px-2 py-0.5 rounded font-bold text-[10px] uppercase tracking-wide bg-[#fef7e0] text-[#b06000] border border-[#b06000]/30">
-              SIMULATED POC DATA
-            </span>
             <span className="text-xs text-[#627d98]">
               Source: <a href={projectSeed.sourceUrl} target="_blank" rel="noreferrer" className="text-[#19638c] underline">{projectSeed.sourceQuality}</a>
             </span>

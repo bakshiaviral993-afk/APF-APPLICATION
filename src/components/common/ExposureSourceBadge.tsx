@@ -36,11 +36,6 @@ export const ExposureSourceBadge: React.FC<ExposureSourceBadgeProps> = ({
           Reconciled
         </span>
       )}
-      {isSimulated && (
-        <span className="px-1.5 py-0.5 rounded font-bold text-[10px] uppercase tracking-wide bg-[#fef7e0] text-[#b06000] border border-[#b06000]/30">
-          SIMULATED POC DATA
-        </span>
-      )}
     </div>
   );
 };

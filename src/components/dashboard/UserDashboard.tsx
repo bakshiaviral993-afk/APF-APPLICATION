@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apfStore } from '../../services/apfStore';
+import { queryStore } from '../../services/queryStore';
 import { APFCase, CaseStatus, UserAccount } from '../../types/apfTransaction';
 import {
   CENTRAL_BUILDER_MASTER,
@@ -19,26 +20,68 @@ import {
   ArrowUpRight,
   Shield,
   Layers,
+  MessageSquare,
+  Lock,
+  Download,
+  CheckSquare,
+  FileText,
+  Camera,
+  X,
+  Sparkles,
 } from 'lucide-react';
+import { ValuationReportDocPreview } from '../valuation/ValuationReportDocPreview';
+import { getOrGenerateBankValuationReport } from '../../services/valuationCalculationEngine';
 
 interface UserDashboardProps {
   currentUser: UserAccount;
   onOpenCase: (caseId: string) => void;
   onInitiateNewCase: () => void;
+  onNavigateToQueries?: (tab?: any) => void;
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({
   currentUser,
   onOpenCase,
   onInitiateNewCase,
+  onNavigateToQueries,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<'ALL' | 'MY_ACTIONS' | 'IN_PROGRESS' | 'APPROVED' | 'REWORK'>('ALL');
-  const allCases = apfStore.getAllCases();
+  const [previewReportCase, setPreviewReportCase] = useState<APFCase | null>(null);
+  const [filterTab, setFilterTab] = useState<
+    | 'ALL'
+    | 'MY_ACTIONS'
+    | 'INITIATED'
+    | 'VALUER_QUEUE'
+    | 'VAL_SUBMITTED'
+    | 'COM_REVIEW'
+    | 'APPROVED'
+    | 'SENT_TO_LOS'
+    | 'REWORK'
+    | 'NEED_INPUT'
+  >('ALL');
+
+  const [cases, setCases] = useState<APFCase[]>(() => apfStore.getAllCases());
+  const [queryCounts, setQueryCounts] = useState(() =>
+    queryStore.getDashboardCounts(currentUser.role, currentUser.id)
+  );
+
+  useEffect(() => {
+    const unsubCases = apfStore.subscribe(() => {
+      setCases(apfStore.getAllCases());
+    });
+    const unsubQueries = queryStore.subscribe(() => {
+      setQueryCounts(queryStore.getDashboardCounts(currentUser.role, currentUser.id));
+    });
+
+    return () => {
+      unsubCases();
+      unsubQueries();
+    };
+  }, [currentUser]);
 
   // Role filtering rules:
   // External valuer can only see cases assigned to them or unassigned in their panel queue
-  const visibleCases = allCases.filter((c) => {
+  const visibleCases = cases.filter((c) => {
     if (currentUser.role === 'EXTERNAL_VALUER') {
       return (
         c.valuerAssignment?.assignedUserId === currentUser.id ||
@@ -52,28 +95,60 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   // Calculate Metrics
   const totalVisible = visibleCases.length;
   const myPendingActions = visibleCases.filter((c) => c.currentOwnerRole === currentUser.role).length;
-  const inProgress = visibleCases.filter(
+  const initiatedCount = visibleCases.filter((c) => c.currentStatus === 'INITIATED').length;
+  const valuerQueueCount = visibleCases.filter(
     (c) =>
-      c.currentStatus === 'INITIATED' ||
       c.currentStatus === 'ASSIGNED_TO_VALUER' ||
       c.currentStatus === 'VALUER_ACCEPTED' ||
-      c.currentStatus === 'SITE_VISIT_IN_PROGRESS' ||
-      c.currentStatus === 'COM_REVIEW' ||
-      c.currentStatus === 'PENDING_APPROVAL'
+      c.currentStatus === 'SITE_VISIT_IN_PROGRESS'
   ).length;
-  const submitted = visibleCases.filter((c) => c.currentStatus === 'VALUATION_SUBMITTED').length;
-  const approved = visibleCases.filter((c) => c.currentStatus === 'APPROVED' || c.currentStatus === 'CONDITIONAL_APPROVAL').length;
-  const activeApf = visibleCases.filter((c) => c.currentStatus === 'APF_ACTIVE').length;
-  const sentToLos = visibleCases.filter((c) => c.currentStatus === 'SENT_TO_LOS' || c.currentStatus === 'LOS_ACKNOWLEDGED' || c.currentStatus === 'APF_ACTIVE').length;
+  const valSubmittedCount = visibleCases.filter((c) => c.currentStatus === 'VALUATION_SUBMITTED').length;
+  const comReviewCount = visibleCases.filter((c) => c.currentStatus === 'COM_REVIEW' || c.currentStatus === 'PENDING_APPROVAL').length;
+  const approvedCount = visibleCases.filter(
+    (c) => c.currentStatus === 'APPROVED' || c.currentStatus === 'CONDITIONAL_APPROVAL'
+  ).length;
+  const sentToLosCount = visibleCases.filter(
+    (c) =>
+      c.currentStatus === 'SENT_TO_LOS' ||
+      c.currentStatus === 'LOS_ACKNOWLEDGED' ||
+      c.currentStatus === 'APF_ACTIVE'
+  ).length;
   const reworkCount = visibleCases.filter((c) => c.currentStatus === 'VALUATION_REWORK').length;
 
   // Filtered list based on search and tab
   const filteredCases = visibleCases.filter((c) => {
+    // Check blocking query
+    const hasBlocking = queryStore.hasBlockingQuery(c.id).isBlocked;
+
     // Tab filter
     if (filterTab === 'MY_ACTIONS' && c.currentOwnerRole !== currentUser.role) return false;
-    if (filterTab === 'IN_PROGRESS' && (c.currentStatus === 'APF_ACTIVE' || c.currentStatus === 'APPROVED')) return false;
-    if (filterTab === 'APPROVED' && c.currentStatus !== 'APPROVED' && c.currentStatus !== 'CONDITIONAL_APPROVAL' && c.currentStatus !== 'APF_ACTIVE') return false;
+    if (filterTab === 'INITIATED' && c.currentStatus !== 'INITIATED') return false;
+    if (
+      filterTab === 'VALUER_QUEUE' &&
+      c.currentStatus !== 'ASSIGNED_TO_VALUER' &&
+      c.currentStatus !== 'VALUER_ACCEPTED' &&
+      c.currentStatus !== 'SITE_VISIT_IN_PROGRESS'
+    )
+      return false;
+    if (filterTab === 'VAL_SUBMITTED' && c.currentStatus !== 'VALUATION_SUBMITTED') return false;
+    if (filterTab === 'COM_REVIEW' && c.currentStatus !== 'COM_REVIEW' && c.currentStatus !== 'PENDING_APPROVAL')
+      return false;
+    if (
+      filterTab === 'APPROVED' &&
+      c.currentStatus !== 'APPROVED' &&
+      c.currentStatus !== 'CONDITIONAL_APPROVAL' &&
+      c.currentStatus !== 'APF_ACTIVE'
+    )
+      return false;
+    if (
+      filterTab === 'SENT_TO_LOS' &&
+      c.currentStatus !== 'SENT_TO_LOS' &&
+      c.currentStatus !== 'LOS_ACKNOWLEDGED' &&
+      c.currentStatus !== 'APF_ACTIVE'
+    )
+      return false;
     if (filterTab === 'REWORK' && c.currentStatus !== 'VALUATION_REWORK') return false;
+    if (filterTab === 'NEED_INPUT' && !hasBlocking) return false;
 
     // Search query
     if (!searchQuery.trim()) return true;
@@ -92,254 +167,378 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const getStatusBadge = (status: CaseStatus) => {
     switch (status) {
       case 'APF_ACTIVE':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e6f4ea] text-[#137333] border border-[#137333]/20">APF ACTIVE</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f4ea] text-[#137333] border border-[#137333]/20">
+            APF ACTIVE
+          </span>
+        );
       case 'APPROVED':
       case 'CONDITIONAL_APPROVAL':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e6f4ea] text-[#137333] border border-[#137333]/20">{status.replace('_', ' ')}</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f4ea] text-[#137333] border border-[#137333]/20">
+            {status.replace('_', ' ')}
+          </span>
+        );
       case 'SENT_TO_LOS':
       case 'LOS_ACKNOWLEDGED':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e8f1f5] text-[#19638c] border border-[#19638c]/20">LOS DISPATCHED</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e8f1f5] text-[#19638c] border border-[#19638c]/20">
+            LOS DISPATCHED
+          </span>
+        );
       case 'VALUATION_SUBMITTED':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e8f1f5] text-[#19638c]">VALUATION SUBMITTED</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
+            VALUATION SUBMITTED
+          </span>
+        );
       case 'SITE_VISIT_IN_PROGRESS':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#e0f2fe] text-[#0369a1] animate-pulse">SITE VISIT ACTIVE</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 animate-pulse border border-amber-300">
+            SITE VISIT (GPS)
+          </span>
+        );
       case 'ASSIGNED_TO_VALUER':
       case 'VALUER_ACCEPTED':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#fef7e0] text-[#b06000] border border-[#b06000]/20">VALUER QUEUE</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+            VALUER QUEUE
+          </span>
+        );
       case 'COM_REVIEW':
       case 'PENDING_APPROVAL':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#fef7e0] text-[#b06000]">CREDIT SANCTION</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+            CREDIT SANCTION
+          </span>
+        );
       case 'VALUATION_REWORK':
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">REWORK REQUIRED</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+            REWORK REQUIRED
+          </span>
+        );
       default:
-        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">{status}</span>;
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+            {status}
+          </span>
+        );
     }
   };
 
-  const getActionHintForCurrentUser = (c: APFCase) => {
-    const isOwner = c.currentOwnerRole === currentUser.role;
-    if (!isOwner) {
-      return (
-        <span className="text-[11px] text-[#829ab1] flex items-center gap-1 italic">
-          <span>Awaiting {c.currentOwnerRole}</span>
-        </span>
-      );
-    }
+  const handleExportCSV = () => {
+    const headers = ['Case ID', 'APF Number', 'Builder', 'Project', 'Status', 'Owner', 'Due Date'];
+    const rows = filteredCases.map((c) => {
+      const b = CENTRAL_BUILDER_MASTER.find((x) => x.id === c.builderId);
+      const p = CENTRAL_PROJECT_MASTER.find((x) => x.id === c.projectId);
+      return [
+        c.id,
+        c.apfNumber,
+        `"${(b?.legalName || c.builderId).replace(/"/g, '""')}"`,
+        `"${(p?.projectName || c.projectId).replace(/"/g, '""')}"`,
+        c.currentStatus,
+        c.currentOwnerRole,
+        c.slaDueDate,
+      ];
+    });
 
-    switch (c.currentStatus) {
-      case 'INITIATED':
-        return <span className="text-[11px] font-bold text-[#19638c] bg-[#e8f1f5] px-2 py-0.5 rounded">Assign Valuer</span>;
-      case 'ASSIGNED_TO_VALUER':
-        return <span className="text-[11px] font-bold text-[#b06000] bg-[#fef7e0] px-2 py-0.5 rounded">Accept Assignment</span>;
-      case 'VALUER_ACCEPTED':
-        return <span className="text-[11px] font-bold text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded">Start Site Visit (GPS)</span>;
-      case 'SITE_VISIT_IN_PROGRESS':
-        return <span className="text-[11px] font-bold text-[#0369a1] bg-[#e0f2fe] px-2 py-0.5 rounded">Submit Valuation</span>;
-      case 'VALUATION_SUBMITTED':
-        return <span className="text-[11px] font-bold text-[#19638c] bg-[#e8f1f5] px-2 py-0.5 rounded">Review Valuation & 360</span>;
-      case 'COM_REVIEW':
-        return <span className="text-[11px] font-bold text-[#b06000] bg-[#fef7e0] px-2 py-0.5 rounded">COM Endorsement</span>;
-      case 'PENDING_APPROVAL':
-        return <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded">Approval Cockpit</span>;
-      case 'APPROVED':
-      case 'CONDITIONAL_APPROVAL':
-        return <span className="text-[11px] font-bold text-[#19638c] bg-[#e8f1f5] px-2 py-0.5 rounded">Send to LOS</span>;
-      case 'APF_ACTIVE':
-        return <span className="text-[11px] font-bold text-[#137333] bg-[#e6f4ea] px-2 py-0.5 rounded">Active in LOS</span>;
-      default:
-        return <span className="text-[11px] font-medium text-[#627d98]">Action Required</span>;
-    }
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `APF_Cases_Export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Welcome Banner */}
-      <div className="bg-white p-6 rounded-2xl border border-[#cbd5e1] shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#19638c] bg-[#e8f1f5] px-2.5 py-0.5 rounded-md">
-              {currentUser.roleLabel}
-            </span>
-            <span className="text-xs text-[#829ab1] font-mono">ID: {currentUser.id}</span>
+    <div className="space-y-3.5 max-w-7xl mx-auto pb-8 font-sans">
+      {/* Enterprise Executive Header Bar */}
+      <div className="bg-white px-3.5 py-2.5 rounded-lg border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="w-8 h-8 rounded-md bg-[#0c3148] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+            {currentUser.name.charAt(0)}
           </div>
-          <h1 className="text-2xl font-black text-[#102a43] mt-1">
-            Welcome back, {currentUser.name}
-          </h1>
-          <p className="text-xs text-[#627d98] mt-0.5">
-            {currentUser.agencyOrDept} • Real-time APF Underwriting Queue
-          </p>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-sm text-slate-900 tracking-tight leading-none">
+                {currentUser.name}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#0c3148] bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200/80">
+                {currentUser.roleLabel || currentUser.role}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">UID: {currentUser.id}</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1 leading-none">
+              {currentUser.agencyOrDept} • Underwriting Desk & Pipeline
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 flex-wrap shrink-0">
           {currentUser.role === 'CPA' && (
             <button
               onClick={onInitiateNewCase}
-              className="px-4 py-2.5 rounded-xl bg-[#0c3148] hover:bg-[#19638c] text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+              className="px-2.5 py-1.5 rounded-md bg-[#0c3148] hover:bg-[#19638c] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5"
             >
-              <FolderPlus className="w-4 h-4" />
-              <span>+ New APF Case</span>
+              <FolderPlus className="w-3.5 h-3.5" />
+              <span>New APF Case</span>
             </button>
           )}
 
           <button
+            onClick={handleExportCSV}
+            className="px-2.5 py-1.5 rounded-md bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-300 transition-colors flex items-center gap-1 shadow-2xs"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span>Export</span>
+          </button>
+
+          <button
             onClick={() => {
-              if (window.confirm('Reset all demo cases to initial state? Masters will be preserved.')) {
+              if (window.confirm('Reset all demo cases to initial baseline state?')) {
                 apfStore.resetDemoData();
+                queryStore.resetDemoQueries();
               }
             }}
             title="Reset to baseline demo transaction queue"
-            className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5"
+            className="px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium transition-colors flex items-center gap-1"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden sm:inline">Reset Demo Data</span>
+            <span className="hidden sm:inline">Reset</span>
           </button>
         </div>
       </div>
 
-      {/* 8 Bank Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+      {/* Compact Enterprise KPI Metric Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
+        {/* KPI 1: Total Visible */}
         <div
           onClick={() => setFilterTab('ALL')}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            filterTab === 'ALL' ? 'bg-[#0c3148] text-white border-[#0c3148]' : 'bg-white text-[#102a43] border-[#e2e8f0] hover:border-[#19638c]'
+          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
+            filterTab === 'ALL'
+              ? 'border-sky-700 ring-2 ring-sky-700/15'
+              : 'border-slate-200 hover:border-slate-300'
           }`}
         >
-          <span className={`text-[10px] font-bold uppercase tracking-wider ${filterTab === 'ALL' ? 'text-[#8bb3cb]' : 'text-[#627d98]'}`}>
-            Total Visible
-          </span>
-          <div className="text-xl font-black mt-0.5">{totalVisible}</div>
-          <span className={`text-[10px] ${filterTab === 'ALL' ? 'text-slate-300' : 'text-[#829ab1]'}`}>All active</span>
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 truncate">
+              Total Cases
+            </span>
+            <Layers className="w-3.5 h-3.5 text-slate-400" />
+          </div>
+          <div className="mt-1 flex items-baseline justify-between">
+            <div className="text-xl font-bold text-slate-900 tracking-tight leading-none">
+              {totalVisible}
+            </div>
+            <span className="text-[10px] text-slate-400 font-medium">All Records</span>
+          </div>
         </div>
 
+        {/* KPI 2: Action Required */}
         <div
           onClick={() => setFilterTab('MY_ACTIONS')}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            filterTab === 'MY_ACTIONS' ? 'bg-[#19638c] text-white border-[#19638c]' : 'bg-white text-[#102a43] border-[#e2e8f0] hover:border-[#19638c]'
+          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
+            filterTab === 'MY_ACTIONS'
+              ? 'border-amber-600 ring-2 ring-amber-600/20'
+              : 'border-slate-200 hover:border-amber-300'
           }`}
         >
-          <span className={`text-[10px] font-bold uppercase tracking-wider ${filterTab === 'MY_ACTIONS' ? 'text-sky-200' : 'text-[#19638c]'}`}>
-            My Pending
-          </span>
-          <div className="text-xl font-black mt-0.5 text-amber-500">{myPendingActions}</div>
-          <span className={`text-[10px] ${filterTab === 'MY_ACTIONS' ? 'text-sky-200' : 'text-[#829ab1]'}`}>Action owner</span>
+          <div className="flex items-center justify-between text-amber-700">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Pending Action
+            </span>
+            <Clock className="w-3.5 h-3.5 text-amber-600" />
+          </div>
+          <div className="mt-1 flex items-baseline justify-between">
+            <div className="text-xl font-bold text-amber-900 tracking-tight leading-none">
+              {myPendingActions}
+            </div>
+            {myPendingActions > 0 ? (
+              <span className="text-[9px] font-bold text-amber-800 bg-amber-50 px-1 py-0.2 rounded border border-amber-200">
+                Actionable
+              </span>
+            ) : (
+              <span className="text-[10px] text-slate-400">Up to date</span>
+            )}
+          </div>
         </div>
 
+        {/* KPI 3: Valuer Underwriting */}
         <div
-          onClick={() => setFilterTab('IN_PROGRESS')}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            filterTab === 'IN_PROGRESS' ? 'bg-sky-800 text-white border-sky-800' : 'bg-white text-[#102a43] border-[#e2e8f0] hover:border-[#19638c]'
+          onClick={() => setFilterTab('VALUER_QUEUE')}
+          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
+            filterTab === 'VALUER_QUEUE'
+              ? 'border-indigo-600 ring-2 ring-indigo-600/20'
+              : 'border-slate-200 hover:border-indigo-300'
           }`}
         >
-          <span className={`text-[10px] font-bold uppercase tracking-wider ${filterTab === 'IN_PROGRESS' ? 'text-sky-200' : 'text-[#627d98]'}`}>
-            In Progress
-          </span>
-          <div className="text-xl font-black mt-0.5">{inProgress}</div>
-          <span className={`text-[10px] ${filterTab === 'IN_PROGRESS' ? 'text-sky-200' : 'text-[#829ab1]'}`}>Underway</span>
+          <div className="flex items-center justify-between text-indigo-700">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Valuer Queue
+            </span>
+            <Camera className="w-3.5 h-3.5 text-indigo-500" />
+          </div>
+          <div className="mt-1 flex items-baseline justify-between">
+            <div className="text-xl font-bold text-indigo-950 tracking-tight leading-none">
+              {valuerQueueCount}
+            </div>
+            <span className="text-[10px] text-indigo-600 font-medium">Site & Desk</span>
+          </div>
         </div>
 
-        <div className="p-3 bg-white rounded-xl border border-[#e2e8f0]">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#627d98]">Submitted</span>
-          <div className="text-xl font-black text-[#102a43] mt-0.5">{submitted}</div>
-          <span className="text-[10px] text-[#829ab1]">Valuations</span>
+        {/* KPI 4: Valuation Submitted / Review */}
+        <div
+          onClick={() => setFilterTab('VAL_SUBMITTED')}
+          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
+            filterTab === 'VAL_SUBMITTED'
+              ? 'border-cyan-600 ring-2 ring-cyan-600/20'
+              : 'border-slate-200 hover:border-cyan-300'
+          }`}
+        >
+          <div className="flex items-center justify-between text-cyan-800">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Val Submitted
+            </span>
+            <FileText className="w-3.5 h-3.5 text-cyan-600" />
+          </div>
+          <div className="mt-1 flex items-baseline justify-between">
+            <div className="text-xl font-bold text-cyan-950 tracking-tight leading-none">
+              {valSubmittedCount}
+            </div>
+            <span className="text-[10px] text-cyan-700 font-medium">Ready for CPA</span>
+          </div>
         </div>
 
+        {/* KPI 5: Sanctions & Approvals */}
         <div
           onClick={() => setFilterTab('APPROVED')}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            filterTab === 'APPROVED' ? 'bg-emerald-800 text-white border-emerald-800' : 'bg-white text-[#102a43] border-[#e2e8f0] hover:border-[#19638c]'
+          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
+            filterTab === 'APPROVED'
+              ? 'border-emerald-600 ring-2 ring-emerald-600/20'
+              : 'border-slate-200 hover:border-emerald-300'
           }`}
         >
-          <span className={`text-[10px] font-bold uppercase tracking-wider ${filterTab === 'APPROVED' ? 'text-emerald-200' : 'text-[#137333]'}`}>
-            Approved
-          </span>
-          <div className="text-xl font-black mt-0.5 text-[#137333]">{approved}</div>
-          <span className={`text-[10px] ${filterTab === 'APPROVED' ? 'text-emerald-200' : 'text-[#829ab1]'}`}>By Committee</span>
+          <div className="flex items-center justify-between text-emerald-800">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Approved
+            </span>
+            <Shield className="w-3.5 h-3.5 text-emerald-600" />
+          </div>
+          <div className="mt-1 flex items-baseline justify-between">
+            <div className="text-xl font-bold text-emerald-950 tracking-tight leading-none">
+              {approvedCount}
+            </div>
+            <span className="text-[10px] text-emerald-700 font-medium">Sanctioned</span>
+          </div>
         </div>
 
-        <div className="p-3 bg-white rounded-xl border border-[#e2e8f0]">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#19638c]">Sent to LOS</span>
-          <div className="text-xl font-black text-[#19638c] mt-0.5">{sentToLos}</div>
-          <span className="text-[10px] text-[#829ab1]">{activeApf} APF Active</span>
-        </div>
-
+        {/* KPI 6: In-App Queries & Communication */}
         <div
-          onClick={() => setFilterTab('REWORK')}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            filterTab === 'REWORK' ? 'bg-rose-800 text-white border-rose-800' : 'bg-white text-[#102a43] border-[#e2e8f0] hover:border-[#19638c]'
-          }`}
+          onClick={() => {
+            if (onNavigateToQueries) onNavigateToQueries('ALL');
+          }}
+          className="p-2.5 rounded-lg border border-slate-200 bg-white shadow-2xs hover:border-slate-400 hover:shadow-xs transition-all cursor-pointer"
         >
-          <span className={`text-[10px] font-bold uppercase tracking-wider ${filterTab === 'REWORK' ? 'text-rose-200' : 'text-rose-700'}`}>
-            Rework
-          </span>
-          <div className="text-xl font-black mt-0.5 text-rose-600">{reworkCount}</div>
-          <span className={`text-[10px] ${filterTab === 'REWORK' ? 'text-rose-200' : 'text-[#829ab1]'}`}>Exceptions</span>
-        </div>
-
-        <div className="p-3 bg-white rounded-xl border border-[#e2e8f0]">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#137333]">SLA On Track</span>
-          <div className="text-xl font-black text-[#137333] mt-0.5">100%</div>
-          <span className="text-[10px] text-[#829ab1]">0 Breached</span>
+          <div className="flex items-center justify-between text-slate-600">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Live Queries
+            </span>
+            <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+          </div>
+          <div className="mt-1 flex items-baseline justify-between">
+            <div className="text-xl font-bold text-slate-900 tracking-tight leading-none">
+              {queryCounts.openQueries}
+            </div>
+            {queryCounts.needInput > 0 ? (
+              <span className="text-[9px] font-bold text-rose-800 bg-rose-50 px-1 py-0.2 rounded border border-rose-200">
+                {queryCounts.needInput} Urgent
+              </span>
+            ) : (
+              <span className="text-[10px] text-slate-400">In Sync</span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Cases Table Section */}
-      <div className="bg-white rounded-2xl border border-[#cbd5e1] shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
         {/* Table Controls */}
-        <div className="p-4 border-b border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#f8fafc]">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#102a43] uppercase tracking-wider">
+        <div className="p-2.5 px-3.5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-50/70">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
               Cases Queue ({filteredCases.length})
             </span>
-            <span className="text-xs text-[#829ab1]">|</span>
-            <div className="flex items-center gap-1 text-xs">
+            <span className="text-xs text-slate-300">|</span>
+            <div className="flex items-center gap-1 text-xs overflow-x-auto pb-1 sm:pb-0">
               <button
                 onClick={() => setFilterTab('ALL')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors ${
-                  filterTab === 'ALL' ? 'bg-[#0c3148] text-white' : 'text-[#627d98] hover:bg-slate-200'
+                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
+                  filterTab === 'ALL' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
-                All
+                All ({totalVisible})
               </button>
               <button
                 onClick={() => setFilterTab('MY_ACTIONS')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors flex items-center gap-1.5 ${
-                  filterTab === 'MY_ACTIONS' ? 'bg-[#19638c] text-white' : 'text-[#627d98] hover:bg-slate-200'
+                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors flex items-center gap-1 ${
+                  filterTab === 'MY_ACTIONS' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
-                <span>My Pending Actions</span>
+                <span>My Pending</span>
                 {myPendingActions > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-[#102a43] text-[10px] font-black">
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-900 text-[9px] font-black">
                     {myPendingActions}
                   </span>
                 )}
               </button>
               <button
-                onClick={() => setFilterTab('IN_PROGRESS')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors ${
-                  filterTab === 'IN_PROGRESS' ? 'bg-sky-800 text-white' : 'text-[#627d98] hover:bg-slate-200'
+                onClick={() => setFilterTab('VALUER_QUEUE')}
+                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
+                  filterTab === 'VALUER_QUEUE' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
-                In Progress
+                Valuer ({valuerQueueCount})
+              </button>
+              <button
+                onClick={() => setFilterTab('VAL_SUBMITTED')}
+                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
+                  filterTab === 'VAL_SUBMITTED' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
+                }`}
+              >
+                Val Submitted ({valSubmittedCount})
+              </button>
+              <button
+                onClick={() => setFilterTab('COM_REVIEW')}
+                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
+                  filterTab === 'COM_REVIEW' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
+                }`}
+              >
+                Credit Review ({comReviewCount})
               </button>
               <button
                 onClick={() => setFilterTab('APPROVED')}
-                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-colors ${
-                  filterTab === 'APPROVED' ? 'bg-emerald-800 text-white' : 'text-[#627d98] hover:bg-slate-200'
+                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
+                  filterTab === 'APPROVED' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
-                Approved / Active
+                Approved ({approvedCount})
               </button>
             </div>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#829ab1]" />
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search Case ID, Builder, Project..."
+              placeholder="Search Case, Builder, Project..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-[#cbd5e1] focus:ring-2 focus:ring-[#19638c] focus:outline-none text-[#102a43]"
+              className="w-full pl-8 pr-3 py-1 text-xs rounded-md border border-slate-300 focus:ring-1 focus:ring-sky-600 focus:outline-none text-slate-800 bg-white"
             />
           </div>
         </div>
@@ -347,28 +546,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         {/* Responsive Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#f1f5f9] text-[#334e68] uppercase text-[10px] tracking-wider font-bold border-b border-[#e2e8f0]">
+            <thead className="bg-[#f1f5f9] text-slate-700 uppercase text-[10px] tracking-wider font-bold border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4">Case ID & Number</th>
-                <th className="py-3 px-4">Builder / Developer</th>
-                <th className="py-3 px-4">Project & Towers</th>
-                <th className="py-3 px-4">Current Status</th>
-                <th className="py-3 px-4">Current Owner</th>
-                <th className="py-3 px-4">Required Action</th>
-                <th className="py-3 px-4">SLA TAT</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-2 px-3">Case Ref</th>
+                <th className="py-2 px-3">Builder / Developer</th>
+                <th className="py-2 px-3">Project & Towers</th>
+                <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3">Query</th>
+                <th className="py-2 px-3">Action Owner</th>
+                <th className="py-2 px-3">SLA TAT</th>
+                <th className="py-2 px-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e2e8f0]">
+            <tbody className="divide-y divide-slate-200">
               {filteredCases.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#829ab1]">
-                    <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="font-semibold">No cases found in this filter tab.</p>
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                    <Layers className="w-6 h-6 mx-auto mb-1.5 opacity-40" />
+                    <p className="font-semibold text-slate-600 text-xs">No cases found in this filter tab.</p>
                     <p className="text-[11px]">
                       {currentUser.role === 'CPA'
-                        ? 'Click "+ New APF Case" above to start a new transaction.'
-                        : 'Switch to another tab or log in as CPA to initiate transactions.'}
+                        ? 'Click "New APF Case" above to start a new transaction.'
+                        : 'Switch to another filter or check pending queues.'}
                     </p>
                   </td>
                 </tr>
@@ -378,6 +577,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                   const project = CENTRAL_PROJECT_MASTER.find((p) => p.id === c.projectId);
                   const towers = CENTRAL_TOWER_MASTER.filter((t) => c.selectedTowerIds.includes(t.id));
                   const isActionOwner = c.currentOwnerRole === currentUser.role;
+                  const caseQueries = queryStore.getQueriesForCase(c.id);
+                  const blockingStatus = queryStore.hasBlockingQuery(c.id);
+                  const needInputQueries = caseQueries.filter(
+                    (q) => q.status === 'INPUT_REQUIRED' || q.status === 'OPEN'
+                  );
 
                   return (
                     <tr
@@ -387,67 +591,103 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                         isActionOwner ? 'bg-sky-50/40 font-medium' : ''
                       }`}
                     >
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-[#102a43] flex items-center gap-1.5">
+                      <td className="py-2 px-3 font-mono">
+                        <div className="font-bold text-[#0a2540] flex items-center gap-1.5 leading-tight">
                           <span>{c.id}</span>
                           {c.priority === 'High' && (
-                            <span className="w-2 h-2 rounded-full bg-rose-500" title="High Priority" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="High Priority" />
                           )}
                         </div>
-                        <div className="text-[10px] text-[#829ab1] font-mono">{c.apfNumber}</div>
+                        <div className="text-[10px] text-slate-400 font-mono leading-tight">{c.apfNumber}</div>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-[#102a43]">
+                      <td className="py-2 px-3">
+                        <div className="font-bold text-[#0a2540] leading-tight">
                           {builder?.legalName || c.builderId}
                         </div>
-                        <div className="text-[10px] text-[#829ab1]">{builder?.groupName}</div>
+                        <div className="text-[10px] text-slate-500 leading-tight">{builder?.groupName}</div>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-[#19638c]">
+                      <td className="py-2 px-3">
+                        <div className="font-bold text-sky-800 leading-tight">
                           {project?.projectName || c.projectId}
                         </div>
-                        <div className="text-[10px] text-[#627d98]">
+                        <div className="text-[10px] text-slate-500 leading-tight">
                           {towers.map((t) => t.towerName).join(', ') || 'All Towers'}
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4">{getStatusBadge(c.currentStatus)}</td>
+                      <td className="py-2 px-3">{getStatusBadge(c.currentStatus)}</td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-[#102a43] flex items-center gap-1">
-                          <Shield className="w-3 h-3 text-[#19638c]" />
-                          <span>{c.currentOwnerRole}</span>
-                        </div>
-                        <div className="text-[10px] text-[#829ab1]">{c.currentOwnerName}</div>
+                      <td className="py-2 px-3">
+                        {blockingStatus.isBlocked ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-300">
+                            <Lock className="w-3 h-3 text-rose-600" />
+                            <span>BLOCKED</span>
+                          </span>
+                        ) : needInputQueries.length > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            <span>{needInputQueries.length} Open</span>
+                          </span>
+                        ) : caseQueries.some((q) => q.status === 'INPUT_RECEIVED') ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
+                            <CheckCircle2 className="w-3 h-3 text-sky-600" />
+                            <span>Input Recd</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">—</span>
+                        )}
                       </td>
 
-                      <td className="py-3.5 px-4">{getActionHintForCurrentUser(c)}</td>
+                      <td className="py-2 px-3">
+                        <div className="font-semibold text-slate-800 flex items-center gap-1 leading-tight">
+                          <Shield className="w-3 h-3 text-sky-700" />
+                          <span>{c.currentOwnerRole}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 leading-tight">{c.currentOwnerName}</div>
+                      </td>
 
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-[#627d98]">
-                        <div className="flex items-center gap-1 text-emerald-700">
+                      <td className="py-2 px-3 font-mono text-[10px] text-slate-600">
+                        <div className="flex items-center gap-1 text-emerald-700 leading-tight font-medium">
                           <Clock className="w-3 h-3" />
                           <span>28h left</span>
                         </div>
-                        <span className="text-[9px] text-[#829ab1]">Due: {c.slaDueDate.substring(5, 16)}</span>
+                        <span className="text-[9px] text-slate-400 leading-tight">Due {c.slaDueDate.substring(5, 16)}</span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenCase(c.id);
-                          }}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1 ${
-                            isActionOwner
-                              ? 'bg-[#19638c] text-white hover:bg-[#145070] shadow-xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          <span>{isActionOwner ? 'Take Action' : 'Open'}</span>
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        </button>
+                      <td className="py-2 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {(c.valuationReport || c.bankValuationReport || c.detailedValuationReport || c.currentStatus === 'VALUATION_SUBMITTED' || c.currentStatus === 'COM_REVIEW' || c.currentStatus === 'APPROVED' || c.currentStatus === 'SENT_TO_LOS') && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewReportCase(c);
+                              }}
+                              className="px-2 py-0.5 rounded text-xs font-semibold transition-all inline-flex items-center gap-1 bg-sky-50 text-sky-900 hover:bg-sky-100 border border-sky-200 shadow-2xs"
+                              title="Preview Official Bank Valuation Report Document"
+                            >
+                              <FileText className="w-3 h-3 text-sky-600" />
+                              <span>Val Doc</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenCase(c.id);
+                            }}
+                            className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-all inline-flex items-center gap-1 ${
+                              isActionOwner
+                                ? 'bg-[#0c3148] text-white hover:bg-[#19638c] shadow-2xs'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            <span>{isActionOwner ? 'Action' : 'Open'}</span>
+                            <ArrowUpRight className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -457,6 +697,42 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Valuation Report Document Preview Modal */}
+      {previewReportCase && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[92vh] overflow-y-auto shadow-2xl relative p-4 sm:p-6">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-200 sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-sky-100 text-sky-900">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>Official Bank Technical & Valuation Report</span>
+                    <span className="text-xs font-mono font-normal px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                      {previewReportCase.id}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Field Catalogue Compliant • Bank Due Diligence Model • Version {previewReportCase.valuationReport?.reportVersion || 'v1.0'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewReportCase(null)}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <ValuationReportDocPreview
+              reportData={getOrGenerateBankValuationReport(previewReportCase)}
+              onClose={() => setPreviewReportCase(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

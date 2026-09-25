@@ -13,6 +13,7 @@ import {
   LOSOutboundPayload,
   LOSResponseData,
   AuditEventItem,
+  BankValuationReportData,
 } from '../types/apfTransaction';
 import {
   DEMO_USERS,
@@ -21,6 +22,35 @@ import {
   CENTRAL_TOWER_MASTER,
   CENTRAL_PHASE_MASTER,
 } from '../data/centralMasterData';
+import { demoExposureService } from './demoExposureService';
+
+export type GeofenceAlertDispatcher = (params: {
+  caseId: string;
+  valuer: { id?: string; name: string; role: UserRole };
+  attemptedLat: number;
+  attemptedLng: number;
+  distanceMeters: number;
+  projectAddress: string;
+  projectLat: number;
+  projectLng: number;
+  attemptedAddress?: string;
+  notes?: string;
+}) => { queryIds: string[]; breachId: string };
+
+let _geofenceAlertDispatcher: GeofenceAlertDispatcher | null = null;
+export const registerGeofenceAlertDispatcher = (dispatcher: GeofenceAlertDispatcher) => {
+  _geofenceAlertDispatcher = dispatcher;
+};
+
+export interface RecordValuerPinResult {
+  success: boolean;
+  blocked?: boolean;
+  error?: string;
+  message?: string;
+  distanceMeters?: number;
+  breachId?: string;
+  queryIds?: string[];
+}
 
 const STORAGE_KEY_CASES = 'PROVAL_APF_CASES_V3';
 const STORAGE_KEY_AUTH = 'PROVAL_APF_CURRENT_USER_V3';
@@ -62,6 +92,172 @@ export const INITIAL_SEED_CASES: APFCase[] = [
       },
     ],
   },
+  {
+    id: 'APF-2026-0002',
+    apfNumber: 'APF/PUN/2026/0092',
+    createdAt: '2026-09-21 11:15:00',
+    createdBy: 'Rohan Deshmukh (CPA)',
+    currentStatus: 'ASSIGNED_TO_VALUER',
+    currentOwnerRole: 'EXTERNAL_VALUER',
+    currentOwnerName: 'M. K. Kulkarni (Empanelled Valuer)',
+    slaDueDate: '2026-09-24 17:00:00',
+    priority: 'High',
+    requestType: 'New APF',
+    businessUnit: 'Retail Mortgage Assets',
+    branch: 'Pune Main Branch (Code 0412)',
+    proposedExposureCr: 120.0,
+    requestedRetailSourcingLimitCr: 200.0,
+    builderId: 'BLD-PUN-002',
+    projectId: 'PRJ-PUN-002',
+    phaseId: 'PHS-PUN-002-01',
+    selectedTowerIds: ['TWR-PUN-002-A', 'TWR-PUN-002-B'],
+    valuerAssignment: {
+      valuerType: 'External',
+      assignedUserId: 'USR-VAL-EXT-001',
+      assignedUserName: 'M. K. Kulkarni (Empanelled Valuer)',
+      vendorAgency: 'Knight Frank Valuation Services LLP',
+      assignedAt: '2026-09-21 11:30:00',
+      slaDueDate: '2026-09-24 17:00:00',
+      scheduledVisitDate: '2026-09-23',
+      scopeTowerIds: ['TWR-PUN-002-A', 'TWR-PUN-002-B'],
+      scopeTowerNames: ['Tower Aspen', 'Tower Cedar'],
+      instructions: 'Detailed technical & physical valuation inspection. Inspect RCC slab progress, boundary adherence & MahaRERA compliance.',
+      siteContactName: 'Pradeep Joshi (Site Incharge)',
+      siteContactPhone: '+91 98221 54321',
+      conflictDeclared: true,
+      pinnedLocation: {
+        lat: 18.5284,
+        lng: 73.7421,
+        pinnedAt: '2026-09-22 10:15:00',
+        pinnedBy: 'M. K. Kulkarni',
+        pinnedByRole: 'EXTERNAL_VALUER',
+        accuracyMeters: 3.5,
+        address: 'Survey No. 34, Bavdhan / Paud Road, Pune',
+        distanceFromProjectMeters: 42,
+        isInsideGeofence: true,
+      },
+    },
+    auditTrail: [
+      {
+        id: 'EVT-002-01',
+        timestamp: '2026-09-21 11:15:00',
+        actorName: 'Rohan Deshmukh',
+        actorRole: 'CPA',
+        action: 'APF_CASE_INITIATED',
+        priorStatus: 'DRAFT',
+        newStatus: 'INITIATED',
+        remarks: 'Docket created for Shapoorji Pallonji Vanaha – Yahavi.',
+        deviceInfo: 'CPA Workstation',
+      },
+      {
+        id: 'EVT-002-02',
+        timestamp: '2026-09-21 11:30:00',
+        actorName: 'Rohan Deshmukh',
+        actorRole: 'CPA',
+        action: 'VALUER_ASSIGNED',
+        priorStatus: 'INITIATED',
+        newStatus: 'ASSIGNED_TO_VALUER',
+        remarks: 'Assigned to Knight Frank Valuation Services LLP (M. K. Kulkarni) with 72-hour SLA TAT.',
+        deviceInfo: 'Valuation Allocation Engine',
+      },
+    ],
+  },
+  {
+    id: 'APF-2026-0003',
+    apfNumber: 'APF/PUN/2026/0093',
+    createdAt: '2026-09-20 14:00:00',
+    createdBy: 'Rohan Deshmukh (CPA)',
+    currentStatus: 'VALUATION_SUBMITTED',
+    currentOwnerRole: 'CPA',
+    currentOwnerName: 'Rohan Deshmukh',
+    slaDueDate: '2026-09-25 18:00:00',
+    priority: 'High',
+    requestType: 'New APF',
+    businessUnit: 'Retail Mortgage Assets',
+    branch: 'Pune Main Branch (Code 0412)',
+    proposedExposureCr: 95.0,
+    requestedRetailSourcingLimitCr: 160.0,
+    builderId: 'BLD-PUN-003',
+    projectId: 'PRJ-PUN-003',
+    phaseId: 'PHS-PUN-003-01',
+    selectedTowerIds: ['TWR-PUN-003-A', 'TWR-PUN-003-B'],
+    valuerAssignment: {
+      valuerType: 'External',
+      assignedUserId: 'USR-VAL-EXT-001',
+      assignedUserName: 'M. K. Kulkarni (Empanelled Valuer)',
+      vendorAgency: 'Knight Frank Valuation Services LLP',
+      assignedAt: '2026-09-20 15:00:00',
+      slaDueDate: '2026-09-22 18:00:00',
+      scheduledVisitDate: '2026-09-21',
+      scopeTowerIds: ['TWR-PUN-003-A', 'TWR-PUN-003-B'],
+      scopeTowerNames: ['Tower 1', 'Tower 2'],
+      instructions: 'Technical Site Visit and GPS verification',
+      siteContactName: 'Ajay Kadam',
+      siteContactPhone: '+91 98900 11223',
+      conflictDeclared: true,
+      pinnedLocation: {
+        lat: 18.5089,
+        lng: 73.9482,
+        pinnedAt: '2026-09-21 11:20:00',
+        pinnedBy: 'M. K. Kulkarni',
+        pinnedByRole: 'EXTERNAL_VALUER',
+        accuracyMeters: 2.8,
+        address: 'Godrej Infinity, Keshavnagar, Mundhwa, Pune 411036',
+        distanceFromProjectMeters: 35,
+        isInsideGeofence: true,
+      },
+    },
+    valuationReport: {
+      reportVersion: 'v1.0',
+      reportHash: 'a7f3e829c9b1d402e1b8c4d9e03f5a2b1c8e7d6f5a4b3c2d1e0f9a8b7c6d5e4f',
+      submittedAt: '2026-09-22 16:45:00',
+      submittedBy: 'M. K. Kulkarni (Empanelled Valuer)',
+      adoptedBaseRateSqFt: 7200,
+      fairMarketValueCr: 244.8,
+      realizableValueCr: 220.3,
+      distressValueCr: 195.8,
+      recommendedApfRateSqFt: 7000,
+      technicalGrade: 'A',
+      locationScore: 4.5,
+      constructionScore: 4.2,
+      infrastructureScore: 4.0,
+      marketabilityScore: 4.3,
+      rateBand2BHK: '₹7,000 - ₹7,500',
+      rateBand3BHK: '₹7,200 - ₹7,700',
+      validityMonths: 3,
+      keyObservations: [
+        'Construction is on schedule with 16 of 22 slabs completed for Tower 1',
+        'High marketability in Keshavnagar corridor with strong tech buyer demand',
+        'No unauthorized deviation or structural infringement detected',
+      ],
+      valuerRecommendation: 'Recommended for Bank APF approval at base rate of ₹7,200/sq.ft. All statutory approvals verified.',
+      digitalSignature: 'SHA256:e8b91a72d3c4... (Aadhaar eSign Class 3 - M. K. Kulkarni)',
+    },
+    auditTrail: [
+      {
+        id: 'EVT-003-01',
+        timestamp: '2026-09-20 14:00:00',
+        actorName: 'Rohan Deshmukh',
+        actorRole: 'CPA',
+        action: 'APF_CASE_INITIATED',
+        priorStatus: 'DRAFT',
+        newStatus: 'INITIATED',
+        remarks: 'New APF docket for Godrej Infinity (Towers 1 & 2).',
+        deviceInfo: 'CPA Workstation',
+      },
+      {
+        id: 'EVT-003-02',
+        timestamp: '2026-09-22 16:45:00',
+        actorName: 'M. K. Kulkarni',
+        actorRole: 'EXTERNAL_VALUER',
+        action: 'VALUATION_REPORT_SUBMITTED',
+        priorStatus: 'SITE_VISIT_IN_PROGRESS',
+        newStatus: 'VALUATION_SUBMITTED',
+        remarks: 'Submitted independent valuation report (Grade A, Base Rate ₹7,200/sq.ft). Geofence verified on Google Maps.',
+        deviceInfo: 'Valuer Portal Digital Signature Engine',
+      },
+    ],
+  },
 ];
 
 class APFTransactionStore {
@@ -97,7 +293,7 @@ class APFTransactionStore {
     }
   }
 
-  private saveCases() {
+  public saveCases() {
     try {
       localStorage.setItem(STORAGE_KEY_CASES, JSON.stringify(this.cases));
     } catch (e) {
@@ -299,12 +495,238 @@ class APFTransactionStore {
     return true;
   }
 
+  // 4b. Valuer: Pin Location on Google Maps & Save Geotagged Evidence
+  public recordValuerPinnedLocation(
+    caseId: string,
+    pinnedData: {
+      lat: number;
+      lng: number;
+      accuracyMeters: number;
+      address?: string;
+      distanceFromProjectMeters?: number;
+      isInsideGeofence: boolean;
+      notes?: string;
+    }
+  ): RecordValuerPinResult {
+    const c = this.getCaseById(caseId);
+    if (!c) return { success: false, error: 'Case not found' };
+    const user = this.currentUser || { name: 'Empanelled Valuer', role: 'EXTERNAL_VALUER' as const, id: 'VAL-01' };
+
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    // Retrieve Project Master for site address & anchor coordinates verification
+    const project = CENTRAL_PROJECT_MASTER.find((p) => p.id === c.projectId) || {
+      projectName: 'Sanctioned Project Site',
+      address: 'Sanctioned MahaRERA Project Site Perimeter',
+      latLong: { lat: 18.6186, lng: 73.7149 },
+    };
+
+    const distMeters = Math.round(pinnedData.distanceFromProjectMeters ?? 0);
+    const isMismatch = !pinnedData.isInsideGeofence || distMeters > 500;
+
+    // STRICT ENFORCEMENT: If location does not match site address / exceeds geofence boundary,
+    // DO NOT allow valuer to pin or update location. Dispatch immediate high-severity alerts to CPA, COM, ACOM & Approving Authority.
+    if (isMismatch) {
+      let breachResult: { queryIds: string[]; breachId: string } | undefined;
+
+      if (_geofenceAlertDispatcher) {
+        breachResult = _geofenceAlertDispatcher({
+          caseId,
+          valuer: { id: user.id, name: user.name, role: user.role },
+          attemptedLat: pinnedData.lat,
+          attemptedLng: pinnedData.lng,
+          distanceMeters: distMeters,
+          projectAddress: `${project.projectName} — ${project.address}`,
+          projectLat: project.latLong.lat,
+          projectLng: project.latLong.lng,
+          attemptedAddress: pinnedData.address,
+          notes: pinnedData.notes,
+        });
+      } else {
+        // Fallback internal alert logging
+        const breachId = `GF-BREACH-${Date.now()}`;
+        const breachItem = {
+          id: breachId,
+          attemptedAt: now,
+          attemptedBy: user.name,
+          attemptedRole: user.role,
+          attemptedLat: pinnedData.lat,
+          attemptedLng: pinnedData.lng,
+          distanceFromProjectMeters: distMeters,
+          projectAddress: `${project.projectName} — ${project.address}`,
+          projectLat: project.latLong.lat,
+          projectLng: project.latLong.lng,
+          attemptedAddress: pinnedData.address,
+          status: 'ACTIVE_ALERT' as const,
+          alertedRoles: ['CPA', 'COM', 'ACOM', 'APPROVER'] as ('CPA' | 'COM' | 'ACOM' | 'APPROVER')[],
+          reasonNotes: pinnedData.notes,
+        };
+
+        if (!c.geofenceBreachAlerts) c.geofenceBreachAlerts = [];
+        c.geofenceBreachAlerts.unshift(breachItem);
+        c.latestGeofenceBreach = breachItem;
+
+        c.auditTrail.unshift({
+          id: `EVT-GF-BLOCK-${Date.now()}`,
+          timestamp: now,
+          actorName: user.name,
+          actorRole: user.role,
+          action: 'GEOLOCATION_MISMATCH_BREACH_ALERT',
+          priorStatus: c.currentStatus,
+          newStatus: c.currentStatus,
+          remarks: `GEOFENCE MISMATCH BLOCKED: Valuer attempted to pin coordinates [${pinnedData.lat.toFixed(6)}, ${pinnedData.lng.toFixed(6)}] which does NOT match the registered project site address "${project.address}" (${distMeters}m deviation). Update was STRICTLY BLOCKED. Alerts sent to CPA, COM, ACOM & Approving Authorities.`,
+          deviceInfo: 'Google Maps Geofence Compliance Engine',
+        });
+
+        this.saveCases();
+        breachResult = { queryIds: [], breachId };
+      }
+
+      return {
+        success: false,
+        blocked: true,
+        error: 'GEOFENCE_SITE_MISMATCH_PROHIBITED',
+        distanceMeters: distMeters,
+        breachId: breachResult?.breachId,
+        queryIds: breachResult?.queryIds,
+        message: `Pinning rejected: Selected coordinates are ${distMeters}m away from the sanctioned project site address: "${project.address}". Geofence breach alerts have been dispatched to CPA, COM, ACOM & Approving Authorities.`,
+      };
+    }
+
+    // Inside Sanctioned Geofence: Pinning is Permitted
+    if (!c.valuerAssignment) {
+      c.valuerAssignment = {
+        valuerType: 'External',
+        assignedUserId: user.id || 'VAL-01',
+        assignedUserName: user.name,
+        vendorAgency: 'Colliers Valuation Services Pvt Ltd',
+        assignedAt: now,
+        slaDueDate: now,
+        scheduledVisitDate: now,
+        scopeTowerIds: c.selectedTowerIds,
+        scopeTowerNames: ['Selected Towers'],
+        instructions: 'Technical Site Visit and GPS verification',
+        siteContactName: 'Site Supervisor',
+        siteContactPhone: '+91 98220 12345',
+        conflictDeclared: true,
+      };
+    }
+
+    c.valuerAssignment.pinnedLocation = {
+      lat: pinnedData.lat,
+      lng: pinnedData.lng,
+      pinnedAt: now,
+      pinnedBy: user.name,
+      pinnedByRole: user.role,
+      accuracyMeters: pinnedData.accuracyMeters,
+      address: pinnedData.address,
+      distanceFromProjectMeters: pinnedData.distanceFromProjectMeters,
+      isInsideGeofence: true,
+      notes: pinnedData.notes,
+    };
+
+    if (!c.siteVisitEvidence) {
+      c.siteVisitEvidence = [];
+    }
+
+    // Add or update the geotagged pin evidence
+    const existingPinEvidenceIndex = c.siteVisitEvidence.findIndex(
+      (ev) => ev.deviceSessionId === 'GMP-VALUER-PIN-SESSION'
+    );
+
+    const newEvidence = {
+      id: `EV-${Date.now()}`,
+      category: 'Construction' as const,
+      title: 'Valuer Google Maps Geotagged Pin Lock (Verified Within Site Perimeter)',
+      timestamp: now,
+      lat: Number(pinnedData.lat.toFixed(6)),
+      lng: Number(pinnedData.lng.toFixed(6)),
+      accuracyMeters: pinnedData.accuracyMeters || 3.2,
+      isInsideGeofence: true,
+      capturedBy: user.name,
+      deviceSessionId: 'GMP-VALUER-PIN-SESSION',
+      notes:
+        pinnedData.notes ||
+        `Valuer verified and pinned location on Google Maps: ${pinnedData.address || `${pinnedData.lat.toFixed(5)}, ${pinnedData.lng.toFixed(5)}`}. Distance to project center: ${distMeters}m (Within 500m sanctioned perimeter).`,
+    };
+
+    if (existingPinEvidenceIndex >= 0) {
+      c.siteVisitEvidence[existingPinEvidenceIndex] = newEvidence;
+    } else {
+      c.siteVisitEvidence.unshift(newEvidence);
+    }
+
+    // If case is in VALUER_ACCEPTED, automatically advance to SITE_VISIT_IN_PROGRESS upon pinning location
+    const priorStatus = c.currentStatus;
+    if (c.currentStatus === 'VALUER_ACCEPTED') {
+      c.currentStatus = 'SITE_VISIT_IN_PROGRESS';
+    }
+
+    // Clear active breach warning if now verified inside geofence
+    if (c.latestGeofenceBreach && c.latestGeofenceBreach.status === 'ACTIVE_ALERT') {
+      c.latestGeofenceBreach.status = 'DISMISSED';
+      c.latestGeofenceBreach.reviewRemarks = 'Resolved: Valuer successfully re-positioned and locked coordinates within the sanctioned project perimeter.';
+    }
+
+    c.auditTrail.unshift({
+      id: `EVT-GMP-${Date.now()}`,
+      timestamp: now,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'VALUER_LOCATION_PINNED_GOOGLE_MAPS',
+      priorStatus: priorStatus,
+      newStatus: c.currentStatus,
+      remarks: `Valuer verified and pinned coordinates on Google Maps: [${pinnedData.lat.toFixed(6)}, ${pinnedData.lng.toFixed(6)}]. Address: "${pinnedData.address || 'Sanctioned Site Area'}". Geofence: VERIFIED_INSIDE_BOUNDARY (Dist: ${distMeters}m).`,
+      deviceInfo: 'Google Maps Platform Geolocation & Geofence Engine',
+    });
+
+    this.saveCases();
+    return { success: true, message: 'Location verified and pinned successfully within project boundary.' };
+  }
+
+  // Review Geofence Breach (By COM, ACOM, or Approver)
+  public reviewGeofenceBreach(
+    caseId: string,
+    decision: 'OVERRIDE_EXCEPTION_WITH_JUSTIFICATION' | 'REJECT_AND_DEMAND_PHYSICAL_VISIT',
+    remarks: string,
+    reviewerUser?: UserAccount
+  ): boolean {
+    const c = this.getCaseById(caseId);
+    if (!c || !c.latestGeofenceBreach) return false;
+    const reviewer = reviewerUser || this.currentUser || { name: 'Credit Operations Manager', role: 'COM' as const };
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    c.latestGeofenceBreach.status =
+      decision === 'OVERRIDE_EXCEPTION_WITH_JUSTIFICATION'
+        ? 'EXCEPTION_OVERRIDDEN'
+        : 'REVIEWED_BY_COM';
+    c.latestGeofenceBreach.reviewedBy = `${reviewer.name} (${reviewer.role})`;
+    c.latestGeofenceBreach.reviewedAt = now;
+    c.latestGeofenceBreach.reviewRemarks = remarks;
+
+    c.auditTrail.unshift({
+      id: `EVT-GF-REVIEW-${Date.now()}`,
+      timestamp: now,
+      actorName: reviewer.name,
+      actorRole: reviewer.role,
+      action: `GEOFENCE_BREACH_${decision}`,
+      priorStatus: c.currentStatus,
+      newStatus: c.currentStatus,
+      remarks: `${reviewer.role} reviewed geofence mismatch breach. Decision: ${decision}. Remarks: ${remarks}`,
+      deviceInfo: 'PROVAL Credit Risk Governance Console',
+    });
+
+    this.saveCases();
+    return true;
+  }
+
   // 5. Valuer: Submit Valuation Report
   public submitValuationReport(
     caseId: string,
     report: ValuationReportData,
     evidence: SiteVisitEvidence[],
-    comps: MarketComparable[]
+    comps: MarketComparable[],
+    detailedBankReport?: BankValuationReportData
   ): boolean {
     const c = this.getCaseById(caseId);
     if (!c) return false;
@@ -313,6 +735,12 @@ class APFTransactionStore {
     c.valuationReport = report;
     c.siteVisitEvidence = evidence;
     c.marketComparables = comps;
+    if (detailedBankReport) {
+      c.bankValuationReport = detailedBankReport;
+      c.detailedValuationReport = detailedBankReport;
+    } else if ((c as any).detailedValuationReport) {
+      c.bankValuationReport = (c as any).detailedValuationReport;
+    }
     c.currentStatus = 'VALUATION_SUBMITTED';
     c.currentOwnerRole = 'CPA';
     c.currentOwnerName = 'Rohan Deshmukh (CPA)';
@@ -320,6 +748,12 @@ class APFTransactionStore {
     // AUTOMATIC EXPOSURE RECONCILIATION ENGINE:
     // Generate refreshed Exposure 360 immediately upon report submission!
     c.exposureSnapshot = this.generateExposureSnapshot(c, report.adoptedBaseRateSqFt);
+    try {
+      // Freeze immutable snapshot in DemoExposureService for audit compliance
+      demoExposureService.createOrFreezeSnapshot(c.builderId, c.id, `${user.name} (${user.role})`);
+    } catch (e) {
+      console.warn('Could not freeze snapshot in demoExposureService', e);
+    }
 
     c.auditTrail.unshift({
       id: `EVT-${Date.now()}`,
@@ -496,7 +930,10 @@ class APFTransactionStore {
       },
       riskBand: 'Low (Tier 1 Builder)',
       approvalConditions: c.approvalDecision?.conditions.map((cd) => cd.conditionText) || [],
-      exposureSnapshotId: c.exposureSnapshot?.snapshotId || 'EXP-SNAP-2026-001',
+      exposureSnapshotId:
+        demoExposureService.getLatestSnapshotForBuilder(c.builderId)?.snapshotId ||
+        c.exposureSnapshot?.snapshotId ||
+        `EXPO-SNAP-${c.builderId}-001`,
       documentRefs: [
         'DMS-RERA-P52100022154-CERT.pdf',
         'DMS-SANCTIONED-LAYOUT-REV4.pdf',
