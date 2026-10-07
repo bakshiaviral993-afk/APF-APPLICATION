@@ -14,6 +14,13 @@ export type UserRole =
   | 'NCOM'
   | 'APPROVER'
   | 'COMMITTEE'
+  | 'LEGAL'
+  | 'INTERNAL_LEGAL'
+  | 'EXTERNAL_LEGAL_ADVOCATE'
+  | 'EXTERNAL_LEGAL_FIRM_ADMIN'
+  | 'EXTERNAL_LEGAL_FIRM_USER'
+  | 'BILLING_MAKER'
+  | 'BILLING_CHECKER'
   | 'ADMIN';
 
 export interface UserAccount {
@@ -25,6 +32,11 @@ export interface UserAccount {
   agencyOrDept: string;
   email: string;
   avatarInitials: string;
+  vendorId?: string;
+  firmName?: string;
+  empanelmentNumber?: string;
+  empanelmentStatus?: 'ACTIVE' | 'PENDING' | 'EXPIRED';
+  barCouncilNumber?: string;
 }
 
 export type CaseStatus =

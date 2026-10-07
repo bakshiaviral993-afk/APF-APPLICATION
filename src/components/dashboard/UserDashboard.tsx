@@ -28,9 +28,19 @@ import {
   Camera,
   X,
   Sparkles,
+  Scale,
+  Receipt,
+  Users,
+  DollarSign,
+  CreditCard,
+  FileCheck,
 } from 'lucide-react';
 import { ValuationReportDocPreview } from '../valuation/ValuationReportDocPreview';
 import { getOrGenerateBankValuationReport } from '../../services/valuationCalculationEngine';
+import { legalStore } from '../../services/legalStore';
+import { masterStore } from '../../services/masterStore';
+import { billingStore } from '../../services/billingStore';
+import { LegalReportDocModal } from '../legal/LegalReportDocModal';
 
 interface UserDashboardProps {
   currentUser: UserAccount;
@@ -47,6 +57,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [previewReportCase, setPreviewReportCase] = useState<APFCase | null>(null);
+  const [previewLegalCaseId, setPreviewLegalCaseId] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<
     | 'ALL'
     | 'MY_ACTIONS'
@@ -115,6 +126,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   ).length;
   const reworkCount = visibleCases.filter((c) => c.currentStatus === 'VALUATION_REWORK').length;
 
+  // Role-specific Metrics across Modules
+  const legalAssignments = legalStore.getAssignments();
+  const legalQueries = legalStore.getQueries();
+  const bills = billingStore.getBills();
+  const billingEvents = billingStore.getBillingEvents();
+  const pendingMasterApprovals = masterStore.getPendingApprovals();
+  const legalPendingCount = legalAssignments.filter(
+    (a) => a.status === 'LEGAL_ASSIGNED' || a.status === 'LEGAL_REVIEW_IN_PROGRESS'
+  ).length;
+  const exposureReviewCount = visibleCases.filter(
+    (c) => c.currentStatus === 'COM_REVIEW' || c.currentStatus === 'VALUATION_SUBMITTED'
+  ).length;
+
   // Filtered list based on search and tab
   const filteredCases = visibleCases.filter((c) => {
     // Check blocking query
@@ -168,60 +192,69 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     switch (status) {
       case 'APF_ACTIVE':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f4ea] text-[#137333] border border-[#137333]/20">
-            APF ACTIVE
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>APF ACTIVE</span>
           </span>
         );
       case 'APPROVED':
       case 'CONDITIONAL_APPROVAL':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f4ea] text-[#137333] border border-[#137333]/20">
-            {status.replace('_', ' ')}
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>{status.replace(/_/g, ' ')}</span>
           </span>
         );
       case 'SENT_TO_LOS':
       case 'LOS_ACKNOWLEDGED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#e8f1f5] text-[#19638c] border border-[#19638c]/20">
-            LOS DISPATCHED
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200/80">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+            <span>LOS DISPATCHED</span>
           </span>
         );
       case 'VALUATION_SUBMITTED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
-            VALUATION SUBMITTED
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-sky-50 text-sky-900 border border-sky-200/80">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-600" />
+            <span>VALUATION SUBMITTED</span>
           </span>
         );
       case 'SITE_VISIT_IN_PROGRESS':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 animate-pulse border border-amber-300">
-            SITE VISIT (GPS)
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-900 border border-amber-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+            <span>SITE VISIT (GPS)</span>
           </span>
         );
       case 'ASSIGNED_TO_VALUER':
       case 'VALUER_ACCEPTED':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-            VALUER QUEUE
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span>VALUER QUEUE</span>
           </span>
         );
       case 'COM_REVIEW':
       case 'PENDING_APPROVAL':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-            CREDIT SANCTION
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-900 border border-indigo-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+            <span>CREDIT SANCTION</span>
           </span>
         );
       case 'VALUATION_REWORK':
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-            REWORK REQUIRED
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <span>REWORK REQUIRED</span>
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
-            {status}
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <span>{status.replace(/_/g, ' ')}</span>
           </span>
         );
     }
@@ -258,17 +291,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   return (
     <div className="space-y-3.5 max-w-7xl mx-auto pb-8 font-sans">
       {/* Enterprise Executive Header Bar */}
-      <div className="bg-white px-3.5 py-2.5 rounded-lg border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="w-8 h-8 rounded-md bg-[#0c3148] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+          <div className="w-8.5 h-8.5 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs border border-white/20">
             {currentUser.name.charAt(0)}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-sm text-slate-900 tracking-tight leading-none">
+              <span className="font-bold text-sm text-slate-900 tracking-tight leading-none font-sans">
                 {currentUser.name}
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#0c3148] bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200/80">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-sky-900 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/80">
                 {currentUser.roleLabel || currentUser.role}
               </span>
               <span className="text-[10px] text-slate-400 font-mono">UID: {currentUser.id}</span>
@@ -283,19 +316,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           {currentUser.role === 'CPA' && (
             <button
               onClick={onInitiateNewCase}
-              className="px-2.5 py-1.5 rounded-md bg-[#0c3148] hover:bg-[#19638c] text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-98"
             >
-              <FolderPlus className="w-3.5 h-3.5" />
+              <FolderPlus className="w-3.5 h-3.5 text-sky-400" />
               <span>New APF Case</span>
             </button>
           )}
 
           <button
             onClick={handleExportCSV}
-            className="px-2.5 py-1.5 rounded-md bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-300 transition-colors flex items-center gap-1 shadow-2xs"
+            className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-300 transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export</span>
+            <span>Export CSV</span>
           </button>
 
           <button
@@ -306,7 +339,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
               }
             }}
             title="Reset to baseline demo transaction queue"
-            className="px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium transition-colors flex items-center gap-1"
+            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
             <span className="hidden sm:inline">Reset</span>
@@ -314,179 +347,381 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         </div>
       </div>
 
-      {/* Compact Enterprise KPI Metric Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
-        {/* KPI 1: Total Visible */}
-        <div
-          onClick={() => setFilterTab('ALL')}
-          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
-            filterTab === 'ALL'
-              ? 'border-sky-700 ring-2 ring-sky-700/15'
-              : 'border-slate-200 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 truncate">
-              Total Cases
-            </span>
-            <Layers className="w-3.5 h-3.5 text-slate-400" />
+      {/* Compact Enterprise Role-Based KPI Metric Grid */}
+      {currentUser.role === 'CPA' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          {/* 1. Total Cases */}
+          <div
+            onClick={() => setFilterTab('ALL')}
+            className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs relative overflow-hidden ${
+              filterTab === 'ALL' ? 'border-[#1667C1] bg-sky-50/20 ring-1 ring-sky-500/20' : 'border-[#DCE3EB]'
+            }`}
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">Total Cases</div>
+            <div className="text-xl font-bold text-[#172033] mt-1 font-mono">{totalVisible}</div>
+            <div className="text-[10px] text-slate-400 font-medium">All APF Docket</div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <div className="text-xl font-bold text-slate-900 tracking-tight leading-none">
-              {totalVisible}
-            </div>
-            <span className="text-[10px] text-slate-400 font-medium">All Records</span>
-          </div>
-        </div>
 
-        {/* KPI 2: Action Required */}
-        <div
-          onClick={() => setFilterTab('MY_ACTIONS')}
-          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
-            filterTab === 'MY_ACTIONS'
-              ? 'border-amber-600 ring-2 ring-amber-600/20'
-              : 'border-slate-200 hover:border-amber-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-amber-700">
-            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
-              Pending Action
-            </span>
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
+          {/* 2. Pending Action */}
+          <div
+            onClick={() => setFilterTab('MY_ACTIONS')}
+            className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs relative overflow-hidden ${
+              filterTab === 'MY_ACTIONS' ? 'border-amber-600 bg-amber-50/20 ring-1 ring-amber-500/20' : 'border-[#DCE3EB]'
+            }`}
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">Pending Action</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{myPendingActions}</div>
+            <div className="text-[10px] text-amber-700 font-medium">CPA Actionable</div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <div className="text-xl font-bold text-amber-900 tracking-tight leading-none">
-              {myPendingActions}
-            </div>
-            {myPendingActions > 0 ? (
-              <span className="text-[9px] font-bold text-amber-800 bg-amber-50 px-1 py-0.2 rounded border border-amber-200">
-                Actionable
-              </span>
-            ) : (
-              <span className="text-[10px] text-slate-400">Up to date</span>
-            )}
-          </div>
-        </div>
 
-        {/* KPI 3: Valuer Underwriting */}
-        <div
-          onClick={() => setFilterTab('VALUER_QUEUE')}
-          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
-            filterTab === 'VALUER_QUEUE'
-              ? 'border-indigo-600 ring-2 ring-indigo-600/20'
-              : 'border-slate-200 hover:border-indigo-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-indigo-700">
-            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
-              Valuer Queue
-            </span>
-            <Camera className="w-3.5 h-3.5 text-indigo-500" />
+          {/* 3. Valuer Queue */}
+          <div
+            onClick={() => setFilterTab('VALUER_QUEUE')}
+            className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs relative overflow-hidden ${
+              filterTab === 'VALUER_QUEUE' ? 'border-indigo-600 bg-indigo-50/20 ring-1 ring-indigo-500/20' : 'border-[#DCE3EB]'
+            }`}
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 truncate">Valuer Queue</div>
+            <div className="text-xl font-bold text-indigo-950 mt-1 font-mono">{valuerQueueCount}</div>
+            <div className="text-[10px] text-indigo-600 font-medium">Site & Desk Appraisal</div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <div className="text-xl font-bold text-indigo-950 tracking-tight leading-none">
-              {valuerQueueCount}
-            </div>
-            <span className="text-[10px] text-indigo-600 font-medium">Site & Desk</span>
-          </div>
-        </div>
 
-        {/* KPI 4: Valuation Submitted / Review */}
-        <div
-          onClick={() => setFilterTab('VAL_SUBMITTED')}
-          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
-            filterTab === 'VAL_SUBMITTED'
-              ? 'border-cyan-600 ring-2 ring-cyan-600/20'
-              : 'border-slate-200 hover:border-cyan-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-cyan-800">
-            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
-              Val Submitted
-            </span>
-            <FileText className="w-3.5 h-3.5 text-cyan-600" />
+          {/* 4. Legal Pending */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-sky-700 truncate">Legal Pending</div>
+            <div className="text-xl font-bold text-sky-950 mt-1 font-mono">{legalPendingCount}</div>
+            <div className="text-[10px] text-sky-600 font-medium">Title Scrutiny Docket</div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <div className="text-xl font-bold text-cyan-950 tracking-tight leading-none">
-              {valSubmittedCount}
-            </div>
-            <span className="text-[10px] text-cyan-700 font-medium">Ready for CPA</span>
-          </div>
-        </div>
 
-        {/* KPI 5: Sanctions & Approvals */}
-        <div
-          onClick={() => setFilterTab('APPROVED')}
-          className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs ${
-            filterTab === 'APPROVED'
-              ? 'border-emerald-600 ring-2 ring-emerald-600/20'
-              : 'border-slate-200 hover:border-emerald-300'
-          }`}
-        >
-          <div className="flex items-center justify-between text-emerald-800">
-            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
-              Approved
-            </span>
-            <Shield className="w-3.5 h-3.5 text-emerald-600" />
+          {/* 5. Exposure Review */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 truncate">Exposure Review</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">{exposureReviewCount}</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Exposure 360 Scan</div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <div className="text-xl font-bold text-emerald-950 tracking-tight leading-none">
-              {approvedCount}
-            </div>
-            <span className="text-[10px] text-emerald-700 font-medium">Sanctioned</span>
-          </div>
-        </div>
 
-        {/* KPI 6: In-App Queries & Communication */}
-        <div
-          onClick={() => {
-            if (onNavigateToQueries) onNavigateToQueries('ALL');
-          }}
-          className="p-2.5 rounded-lg border border-slate-200 bg-white shadow-2xs hover:border-slate-400 hover:shadow-xs transition-all cursor-pointer"
-        >
-          <div className="flex items-center justify-between text-slate-600">
-            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
-              Live Queries
-            </span>
-            <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+          {/* 6. Live Queries */}
+          <div
+            onClick={() => onNavigateToQueries && onNavigateToQueries('ALL')}
+            className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs cursor-pointer hover:border-slate-400"
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600 truncate">Live Queries</div>
+            <div className="text-xl font-bold text-slate-900 mt-1 font-mono">{queryCounts.openQueries}</div>
+            <div className="text-[10px] text-rose-600 font-medium">{queryCounts.needInput} Urgent Input</div>
           </div>
-          <div className="mt-1 flex items-baseline justify-between">
-            <div className="text-xl font-bold text-slate-900 tracking-tight leading-none">
-              {queryCounts.openQueries}
-            </div>
-            {queryCounts.needInput > 0 ? (
-              <span className="text-[9px] font-bold text-rose-800 bg-rose-50 px-1 py-0.2 rounded border border-rose-200">
-                {queryCounts.needInput} Urgent
-              </span>
-            ) : (
-              <span className="text-[10px] text-slate-400">In Sync</span>
-            )}
+
+          {/* 7. Approved / Sent to LOS */}
+          <div
+            onClick={() => setFilterTab('APPROVED')}
+            className={`p-2.5 rounded-lg border transition-all cursor-pointer bg-white shadow-2xs hover:shadow-xs relative overflow-hidden ${
+              filterTab === 'APPROVED' ? 'border-emerald-600 bg-emerald-50/20 ring-1 ring-emerald-500/20' : 'border-[#DCE3EB]'
+            }`}
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 truncate">Approved / LOS</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">{approvedCount + sentToLosCount}</div>
+            <div className="text-[10px] text-emerald-700 font-medium">Sanctioned Dockets</div>
           </div>
         </div>
-      </div>
+      ) : currentUser.role === 'COM' || currentUser.role === 'ACOM' || currentUser.role === 'RCOM' || currentUser.role === 'ZCOM' || currentUser.role === 'NCOM' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {/* 1. Cases Pending Review */}
+          <div
+            onClick={() => setFilterTab('COM_REVIEW')}
+            className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs cursor-pointer hover:border-[#1667C1]"
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">Cases Pending Review</div>
+            <div className="text-xl font-bold text-[#172033] mt-1 font-mono">{comReviewCount}</div>
+            <div className="text-[10px] text-sky-700 font-medium">Credit Ops Check</div>
+          </div>
+
+          {/* 2. Exposure Reconciliation */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 truncate">Exposure Reconciliation</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">{exposureReviewCount}</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Group Cap Audit</div>
+          </div>
+
+          {/* 3. Credit Review */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 truncate">Credit Review</div>
+            <div className="text-xl font-bold text-indigo-950 mt-1 font-mono">{cases.filter((c) => c.currentStatus === 'COM_REVIEW').length}</div>
+            <div className="text-[10px] text-indigo-600 font-medium">Checker Clearance</div>
+          </div>
+
+          {/* 4. Pending Approval Pack */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">Pending Approval Pack</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{pendingMasterApprovals.length}</div>
+            <div className="text-[10px] text-amber-700 font-medium">Maker-Checker Pack</div>
+          </div>
+
+          {/* 5. Legal Exceptions */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-rose-700 truncate">Legal Exceptions</div>
+            <div className="text-xl font-bold text-rose-900 mt-1 font-mono">{legalAssignments.filter((a) => a.status === 'LEGAL_REWORK' || a.status === 'LEGAL_SUBMITTED').length}</div>
+            <div className="text-[10px] text-rose-600 font-medium">Title Variance</div>
+          </div>
+
+          {/* 6. Queries */}
+          <div
+            onClick={() => onNavigateToQueries && onNavigateToQueries('ALL')}
+            className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs cursor-pointer hover:border-slate-400"
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600 truncate">Live Queries</div>
+            <div className="text-xl font-bold text-slate-900 mt-1 font-mono">{queryCounts.openQueries}</div>
+            <div className="text-[10px] text-slate-500 font-medium">Operational Queries</div>
+          </div>
+        </div>
+      ) : currentUser.role === 'INTERNAL_LEGAL' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {/* 1. New Legal Assignments */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">New Assignments</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{legalAssignments.filter((a) => a.status === 'LEGAL_ASSIGNED').length}</div>
+            <div className="text-[10px] text-amber-600 font-medium">Awaiting Intake</div>
+          </div>
+
+          {/* 2. In Review */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-sky-700 truncate">In Review</div>
+            <div className="text-xl font-bold text-sky-950 mt-1 font-mono">{legalAssignments.filter((a) => a.status === 'LEGAL_REVIEW_IN_PROGRESS' || a.status === 'LEGAL_ACCEPTED').length}</div>
+            <div className="text-[10px] text-sky-600 font-medium">Title Chain Scrutiny</div>
+          </div>
+
+          {/* 3. Need Input */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">Need Input</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{legalQueries.filter((q) => q.status === 'INPUT_REQUIRED').length}</div>
+            <div className="text-[10px] text-amber-600 font-medium">Clarifications</div>
+          </div>
+
+          {/* 4. Rework */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-rose-700 truncate">Rework</div>
+            <div className="text-xl font-bold text-rose-900 mt-1 font-mono">{legalAssignments.filter((a) => a.status === 'LEGAL_REWORK').length}</div>
+            <div className="text-[10px] text-rose-600 font-medium">Observations Sent</div>
+          </div>
+
+          {/* 5. Submitted */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 truncate">Submitted</div>
+            <div className="text-xl font-bold text-indigo-950 mt-1 font-mono">{legalAssignments.filter((a) => a.status === 'LEGAL_SUBMITTED').length}</div>
+            <div className="text-[10px] text-indigo-600 font-medium">Under Bank Review</div>
+          </div>
+
+          {/* 6. Approved */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 truncate">Approved</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">{legalAssignments.filter((a) => a.status === 'LEGAL_ACCEPTED_BY_BANK' || a.status === 'BILLING_ELIGIBLE').length}</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Clear Marketable</div>
+          </div>
+        </div>
+      ) : currentUser.role === 'INTERNAL_VALUER' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {/* 1. New Assignments */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">New Assignments</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{cases.filter((c) => c.currentStatus === 'ASSIGNED_TO_VALUER').length}</div>
+            <div className="text-[10px] text-amber-600 font-medium">Technical Appraisal</div>
+          </div>
+
+          {/* 2. Site Visits Due */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 truncate">Site Visits Due</div>
+            <div className="text-xl font-bold text-indigo-950 mt-1 font-mono">{cases.filter((c) => c.currentStatus === 'SITE_VISIT_IN_PROGRESS').length}</div>
+            <div className="text-[10px] text-indigo-600 font-medium">GPS Coordinates</div>
+          </div>
+
+          {/* 3. Draft Reports */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600 truncate">Draft Reports</div>
+            <div className="text-xl font-bold text-[#172033] mt-1 font-mono">{cases.filter((c) => c.currentStatus === 'VALUER_ACCEPTED').length}</div>
+            <div className="text-[10px] text-slate-500 font-medium">Work in Progress</div>
+          </div>
+
+          {/* 4. Submitted */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 truncate">Submitted</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">{valSubmittedCount}</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Reports Dispatched</div>
+          </div>
+
+          {/* 5. Need Input */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">Need Input</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{queryCounts.needInput}</div>
+            <div className="text-[10px] text-amber-600 font-medium">Clarifications</div>
+          </div>
+
+          {/* 6. Rework */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-rose-700 truncate">Rework</div>
+            <div className="text-xl font-bold text-rose-900 mt-1 font-mono">{reworkCount}</div>
+            <div className="text-[10px] text-rose-600 font-medium">Re-evaluation Due</div>
+          </div>
+        </div>
+      ) : currentUser.role === 'APPROVER' || currentUser.role === 'COMMITTEE' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {/* 1. Cases Awaiting Decision */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">Awaiting Decision</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{cases.filter((c) => c.currentStatus === 'PENDING_APPROVAL' || c.currentStatus === 'COM_REVIEW').length}</div>
+            <div className="text-[10px] text-amber-600 font-medium">Sanction Cockpit</div>
+          </div>
+
+          {/* 2. High Risk */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-rose-700 truncate">High Risk</div>
+            <div className="text-xl font-bold text-rose-900 mt-1 font-mono">{cases.filter((c) => c.priority === 'High' || c.priority === 'Urgent').length}</div>
+            <div className="text-[10px] text-rose-600 font-medium">Red Flag Deviations</div>
+          </div>
+
+          {/* 3. Legal Variance */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-sky-700 truncate">Legal Variance</div>
+            <div className="text-xl font-bold text-sky-950 mt-1 font-mono">{legalStore.getAllReports().filter((r) => r.legalRoute === 'Dual Legal Review').length || 1}</div>
+            <div className="text-[10px] text-sky-600 font-medium">Dual Scrutiny Compare</div>
+          </div>
+
+          {/* 4. Exposure Variance */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 truncate">Exposure Variance</div>
+            <div className="text-xl font-bold text-indigo-950 mt-1 font-mono">1</div>
+            <div className="text-[10px] text-indigo-600 font-medium">Delta vs Core Banking</div>
+          </div>
+
+          {/* 5. Approval Pending */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">Approval Pending</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{cases.filter((c) => c.currentStatus === 'PENDING_APPROVAL').length}</div>
+            <div className="text-[10px] text-amber-600 font-medium">Level 2 Mandate</div>
+          </div>
+
+          {/* 6. LOS Pending */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 truncate">LOS Pending</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">{cases.filter((c) => c.currentStatus === 'APPROVED' || c.currentStatus === 'SENT_TO_LOS').length}</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Ready for Dispatch</div>
+          </div>
+        </div>
+      ) : currentUser.role === 'BILLING_MAKER' || currentUser.role === 'BILLING_CHECKER' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {/* 1. Eligible for Billing */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 truncate">Eligible for Billing</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">{billingEvents.filter((e) => e.billingStatus === 'BILLING_ELIGIBLE').length}</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Completed Milestones</div>
+          </div>
+
+          {/* 2. Invoices Pending */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">Invoices Pending</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{bills.filter((b) => b.status === 'INVOICE_SUBMITTED').length}</div>
+            <div className="text-[10px] text-amber-600 font-medium">Vendor Tax Invoices</div>
+          </div>
+
+          {/* 3. Maker Queue */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-sky-700 truncate">Maker Queue</div>
+            <div className="text-xl font-bold text-sky-950 mt-1 font-mono">{bills.filter((b) => b.status === 'BILL_VERIFICATION' || b.status === 'INVOICE_SUBMITTED').length}</div>
+            <div className="text-[10px] text-sky-600 font-medium">3-Way Matching</div>
+          </div>
+
+          {/* 4. Checker Queue */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 truncate">Checker Queue</div>
+            <div className="text-xl font-bold text-indigo-950 mt-1 font-mono">{bills.filter((b) => b.status === 'BILL_APPROVAL').length}</div>
+            <div className="text-[10px] text-indigo-600 font-medium">Approval Trays</div>
+          </div>
+
+          {/* 5. ERP Posted */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-sky-700 truncate">ERP Posted</div>
+            <div className="text-xl font-bold text-sky-950 mt-1 font-mono">{bills.filter((b) => b.status === 'SENT_TO_FINANCE').length}</div>
+            <div className="text-[10px] text-sky-600 font-medium">Voucher Created</div>
+          </div>
+
+          {/* 6. Paid */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 truncate">Paid</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">{bills.filter((b) => b.status === 'PAID').length}</div>
+            <div className="text-[10px] text-emerald-600 font-medium">UTR Disbursed</div>
+          </div>
+        </div>
+      ) : (
+        /* Admin Landing */
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {/* 1. Master Updates */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">Master Updates</div>
+            <div className="text-xl font-bold text-[#172033] mt-1 font-mono">{pendingMasterApprovals.length}</div>
+            <div className="text-[10px] text-slate-500 font-medium">Pending Approvals</div>
+          </div>
+
+          {/* 2. Active Users */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-sky-700 truncate">Active Users</div>
+            <div className="text-xl font-bold text-sky-950 mt-1 font-mono">14</div>
+            <div className="text-[10px] text-sky-600 font-medium">Provisioned Roles</div>
+          </div>
+
+          {/* 3. Vendor Empanelment */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 truncate">Vendor Empanelment</div>
+            <div className="text-xl font-bold text-indigo-950 mt-1 font-mono">{billingStore.getVendorProfiles().length}</div>
+            <div className="text-[10px] text-indigo-600 font-medium">Active Vendors</div>
+          </div>
+
+          {/* 4. Audit Exceptions */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-rose-700 truncate">Audit Exceptions</div>
+            <div className="text-xl font-bold text-rose-900 mt-1 font-mono">{queryCounts.overdueQueries}</div>
+            <div className="text-[10px] text-rose-600 font-medium">SLA Breaches</div>
+          </div>
+
+          {/* 5. Pending Config Changes */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700 truncate">Pending Config Changes</div>
+            <div className="text-xl font-bold text-amber-900 mt-1 font-mono">{pendingMasterApprovals.length}</div>
+            <div className="text-[10px] text-amber-600 font-medium">Registry Changes</div>
+          </div>
+
+          {/* 6. System Alerts */}
+          <div className="p-2.5 rounded-lg border border-[#DCE3EB] bg-white shadow-2xs">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 truncate">System Alerts</div>
+            <div className="text-xl font-bold text-emerald-950 mt-1 font-mono">0</div>
+            <div className="text-[10px] text-emerald-600 font-medium">All Gateways Healthy</div>
+          </div>
+        </div>
+      )}
 
       {/* Main Cases Table Section */}
       <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
         {/* Table Controls */}
-        <div className="p-2.5 px-3.5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-50/70">
+        <div className="p-2 px-3 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-50/60">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
-              Cases Queue ({filteredCases.length})
+            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider font-sans">
+              Cases Queue
             </span>
             <span className="text-xs text-slate-300">|</span>
-            <div className="flex items-center gap-1 text-xs overflow-x-auto pb-1 sm:pb-0">
+            {/* Segmented Filter Control */}
+            <div className="flex items-center gap-0.5 p-0.5 bg-slate-200/80 rounded-lg text-xs overflow-x-auto">
               <button
                 onClick={() => setFilterTab('ALL')}
-                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
-                  filterTab === 'ALL' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
+                className={`px-2.5 py-1 rounded-md font-semibold text-xs transition-all cursor-pointer ${
+                  filterTab === 'ALL'
+                    ? 'bg-white text-slate-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 All ({totalVisible})
               </button>
               <button
                 onClick={() => setFilterTab('MY_ACTIONS')}
-                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors flex items-center gap-1 ${
-                  filterTab === 'MY_ACTIONS' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
+                className={`px-2.5 py-1 rounded-md font-semibold text-xs transition-all flex items-center gap-1 cursor-pointer ${
+                  filterTab === 'MY_ACTIONS'
+                    ? 'bg-white text-slate-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <span>My Pending</span>
@@ -498,32 +733,40 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
               </button>
               <button
                 onClick={() => setFilterTab('VALUER_QUEUE')}
-                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
-                  filterTab === 'VALUER_QUEUE' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
+                className={`px-2.5 py-1 rounded-md font-semibold text-xs transition-all cursor-pointer ${
+                  filterTab === 'VALUER_QUEUE'
+                    ? 'bg-white text-slate-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Valuer ({valuerQueueCount})
               </button>
               <button
                 onClick={() => setFilterTab('VAL_SUBMITTED')}
-                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
-                  filterTab === 'VAL_SUBMITTED' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
+                className={`px-2.5 py-1 rounded-md font-semibold text-xs transition-all cursor-pointer ${
+                  filterTab === 'VAL_SUBMITTED'
+                    ? 'bg-white text-slate-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Val Submitted ({valSubmittedCount})
               </button>
               <button
                 onClick={() => setFilterTab('COM_REVIEW')}
-                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
-                  filterTab === 'COM_REVIEW' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
+                className={`px-2.5 py-1 rounded-md font-semibold text-xs transition-all cursor-pointer ${
+                  filterTab === 'COM_REVIEW'
+                    ? 'bg-white text-slate-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Credit Review ({comReviewCount})
               </button>
               <button
                 onClick={() => setFilterTab('APPROVED')}
-                className={`px-2 py-1 rounded-md font-semibold text-xs transition-colors ${
-                  filterTab === 'APPROVED' ? 'bg-[#0c3148] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200/70'
+                className={`px-2.5 py-1 rounded-md font-semibold text-xs transition-all cursor-pointer ${
+                  filterTab === 'APPROVED'
+                    ? 'bg-white text-slate-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Approved ({approvedCount})
@@ -532,13 +775,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
             <input
               type="text"
               placeholder="Search Case, Builder, Project..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1 text-xs rounded-md border border-slate-300 focus:ring-1 focus:ring-sky-600 focus:outline-none text-slate-800 bg-white"
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-300/90 focus:ring-2 focus:ring-sky-500 focus:outline-hidden text-slate-800 bg-white shadow-2xs"
             />
           </div>
         </div>
@@ -674,6 +917,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                           )}
 
                           <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewLegalCaseId(c.id);
+                            }}
+                            className="px-2 py-0.5 rounded text-xs font-semibold transition-all inline-flex items-center gap-1 bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300 shadow-2xs"
+                            title="Preview APF Legal Due Diligence Report Docket"
+                          >
+                            <Scale className="w-3 h-3 text-sky-700" />
+                            <span>Legal Doc</span>
+                          </button>
+
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               onOpenCase(c.id);
@@ -732,6 +988,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
             />
           </div>
         </div>
+      )}
+
+      {/* Legal Due Diligence Formal Report Modal */}
+      {previewLegalCaseId && (
+        <LegalReportDocModal
+          isOpen={Boolean(previewLegalCaseId)}
+          onClose={() => setPreviewLegalCaseId(null)}
+          report={legalStore.getOrCreateReport(previewLegalCaseId)}
+        />
       )}
     </div>
   );

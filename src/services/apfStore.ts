@@ -993,6 +993,30 @@ class APFTransactionStore {
     return true;
   }
 
+  // Generalized status update helper
+  public updateCaseStatus(caseId: string, newStatus: CaseStatus, remarks?: string): boolean {
+    const c = this.getCaseById(caseId);
+    if (!c) return false;
+    const user = this.currentUser || DEMO_USERS['cpa01'];
+    const priorStatus = c.currentStatus;
+
+    c.currentStatus = newStatus;
+    c.auditTrail.unshift({
+      id: `EVT-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      actorName: user.name,
+      actorRole: user.role,
+      action: `STATUS_CHANGE_TO_${newStatus}`,
+      priorStatus,
+      newStatus,
+      remarks: remarks || `Status transitioned to ${newStatus}`,
+      deviceInfo: 'PROVAL APF Workstation Hub',
+    });
+
+    this.saveCases();
+    return true;
+  }
+
   // Exposure Generator
   private generateExposureSnapshot(c: APFCase, baseRateSqFt: number): ExposureSnapshot {
     const requestedRetailCr = c.requestedRetailSourcingLimitCr || 150.0;

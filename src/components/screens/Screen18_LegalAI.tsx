@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAPF } from '../../context/APFContext';
 import { Scale, CheckCircle2, AlertTriangle, FileText, ChevronRight, ShieldAlert } from 'lucide-react';
+import { legalStore } from '../../services/legalStore';
+import { LegalReportDocModal } from '../legal/LegalReportDocModal';
 
 export const Screen18_LegalAI: React.FC = () => {
   const { setCurrentScreen, setActiveEvidence } = useAPF();
+  const [showLegalDocModal, setShowLegalDocModal] = useState(false);
 
   const legalClauses = [
     {
@@ -49,6 +52,13 @@ export const Screen18_LegalAI: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowLegalDocModal(true)}
+            className="px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5"
+          >
+            <Scale className="w-3.5 h-3.5" />
+            <span>Formal APF Legal DD Report</span>
+          </button>
           <button
             onClick={() => setCurrentScreen('19')}
             className="px-3.5 py-2 rounded-lg bg-[#19638c] hover:bg-[#145070] text-white text-xs font-semibold transition-colors shadow-sm"
@@ -118,6 +128,14 @@ export const Screen18_LegalAI: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {showLegalDocModal && (
+        <LegalReportDocModal
+          isOpen={showLegalDocModal}
+          onClose={() => setShowLegalDocModal(false)}
+          report={legalStore.getOrCreateReport('APF-2026-0001')}
+        />
+      )}
     </div>
   );
 };
