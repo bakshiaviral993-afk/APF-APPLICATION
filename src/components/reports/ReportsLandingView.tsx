@@ -85,7 +85,7 @@ export const ReportsLandingView: React.FC<ReportsLandingViewProps> = ({
 
       {/* Content */}
       {activeTab === 'PORTFOLIO_MIS' && (
-        <Screen30_PortfolioIntelligence />
+        <Screen30_PortfolioIntelligence onBack={onBack} />
       )}
 
       {activeTab === 'SLA_TAT' && (

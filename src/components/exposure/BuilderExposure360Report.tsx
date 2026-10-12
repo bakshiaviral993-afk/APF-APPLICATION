@@ -29,6 +29,8 @@ import {
   Check,
 } from 'lucide-react';
 import { CENTRAL_BUILDER_MASTER } from '../../data/centralMasterData';
+import { masterStore } from '../../services/masterStore';
+import { BuilderMaster } from '../../types/apfTransaction';
 import { demoExposureService } from '../../services/demoExposureService';
 import { FetchExposureDrawer } from './FetchExposureDrawer';
 import { canAccessExposureReport, ExposureAccessRestrictedCard } from '../../utils/exposurePermissions';
@@ -66,9 +68,21 @@ export const BuilderExposure360Report: React.FC<BuilderExposure360ReportProps> =
   caseId = 'APF-2026-0001',
   onDecisionMade,
 }) => {
-  // Selected builder state (defaults to passed builder or BLD-PUN-001)
+  // Available builders from MasterStore (dynamically includes newly fetched / added builders)
+  const [builders, setBuilders] = useState<BuilderMaster[]>(() => masterStore.getBuilders());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const list = masterStore.getBuilders();
+      setBuilders(list);
+    };
+    handleUpdate();
+    return masterStore.subscribe(handleUpdate);
+  }, []);
+
+  // Selected builder state (defaults to passed builder or first available builder)
   const [selectedBuilderId, setSelectedBuilderId] = useState<string>(
-    initialBuilderId || 'BLD-PUN-001'
+    initialBuilderId || (builders[0]?.id ?? 'BLD-PUN-001')
   );
 
   // Active tab
@@ -259,7 +273,7 @@ export const BuilderExposure360Report: React.FC<BuilderExposure360ReportProps> =
                 onChange={(e) => setSelectedBuilderId(e.target.value)}
                 className="text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
               >
-                {CENTRAL_BUILDER_MASTER.map((b) => (
+                {builders.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.id} — {b.legalName} ({b.city})
                   </option>

@@ -16,6 +16,10 @@ import {
   BillingAuditEvent,
   VendorType,
   BillingStatus,
+  TaxRuleMaster,
+  RecomputationRecord,
+  HoldRecord,
+  PeriodicBillSummary,
 } from '../types/billingTypes';
 import { apfStore } from './apfStore';
 import { legalStore } from './legalStore';
@@ -929,11 +933,72 @@ export const INITIAL_BILLING_EVENTS: BillingEvent[] = [
   },
 ];
 
+export const INITIAL_TAX_RULES: TaxRuleMaster[] = [
+  {
+    id: 'TR-001',
+    ruleCode: 'GST18_TDS10_PROF',
+    taxRuleCode: 'GST_18',
+    gstRuleCode: 'GST_STD_18',
+    withholdingRuleCode: 'TDS_194J_10',
+    tdsRuleCode: 'SEC_194J',
+    placeOfSupplyRule: 'Location of Supplier / Recipient State Match (Intra: CGST 9% + SGST 9%, Inter: IGST 18%)',
+    vendorCategory: 'Registered Corporate / LLP Valuer & Advocate Panel',
+    effectiveFrom: '2026-04-01',
+    effectiveTo: '2027-03-31',
+    cgstRatePct: 9,
+    sgstRatePct: 9,
+    igstRatePct: 18,
+    tdsRatePct: 10,
+    applicability: 'Standard Professional & Technical Fees above ₹30,000 threshold',
+    approvalStatus: 'APPROVED',
+    description: 'Mandatory standard withholding for professional appraisal & title scrutiny under Sec 194J.',
+  },
+  {
+    id: 'TR-002',
+    ruleCode: 'GST18_TDS02_LOWER',
+    taxRuleCode: 'GST_18',
+    gstRuleCode: 'GST_STD_18',
+    withholdingRuleCode: 'TDS_194J_02',
+    tdsRuleCode: 'SEC_197_LOWER',
+    placeOfSupplyRule: 'Place of Supply based on State GSTIN Registration',
+    vendorCategory: 'Lower Deduction Certificate Holders (Sec 197)',
+    effectiveFrom: '2026-04-01',
+    effectiveTo: '2027-03-31',
+    cgstRatePct: 9,
+    sgstRatePct: 9,
+    igstRatePct: 18,
+    tdsRatePct: 2,
+    applicability: 'Vendors with valid Income Tax Department Certificate under Section 197',
+    approvalStatus: 'APPROVED',
+    description: 'Concessional 2% withholding applicable upon verified Lower TDS certificate validation.',
+  },
+  {
+    id: 'TR-003',
+    ruleCode: 'GST00_RCM_UNREG',
+    taxRuleCode: 'GST_00_RCM',
+    gstRuleCode: 'GST_RCM_REVERSE',
+    withholdingRuleCode: 'TDS_194J_10',
+    tdsRuleCode: 'SEC_194J',
+    placeOfSupplyRule: 'Reverse Charge Mechanism (Bank pays GST directly under RCM)',
+    vendorCategory: 'Individual Advocates / Unregistered Arbitrators',
+    effectiveFrom: '2026-04-01',
+    effectiveTo: '2027-03-31',
+    cgstRatePct: 0,
+    sgstRatePct: 0,
+    igstRatePct: 0,
+    tdsRatePct: 10,
+    applicability: 'Legal services provided by individual advocates under Notification 13/2017-Central Tax (Rate)',
+    approvalStatus: 'APPROVED',
+    description: 'Exempt on vendor tax invoice; Bank accounts for GST under Reverse Charge.',
+  },
+];
+
 class BillingStore {
   private vendorProfiles: VendorBillingProfile[] = [...INITIAL_VENDOR_PROFILES];
   private rateCards: RateCardMaster[] = [...INITIAL_RATE_CARDS];
   private billingEvents: BillingEvent[] = [...INITIAL_BILLING_EVENTS];
   private bills: BillMaster[] = [...INITIAL_BILLS];
+  private taxRules: TaxRuleMaster[] = [...INITIAL_TAX_RULES];
   private auditEvents: BillingAuditEvent[] = [];
   private listeners: (() => void)[] = [];
 
@@ -1987,12 +2052,401 @@ class BillingStore {
     this.notify();
   }
 
+  // Tax Rule Master operations
+  getTaxRules(): TaxRuleMaster[] {
+    return [...this.taxRules];
+  }
+
+  getTaxRuleById(id: string): TaxRuleMaster | undefined {
+    return this.taxRules.find((t) => t.id === id);
+  }
+
+  updateTaxRule(updated: TaxRuleMaster): void {
+    const idx = this.taxRules.findIndex((t) => t.id === updated.id);
+    if (idx >= 0) {
+      this.taxRules[idx] = { ...updated };
+    } else {
+      this.taxRules.push(updated);
+    }
+    this.notify();
+  }
+
+  // Vendor Master Compliance & Empanelment Validation
+  validateVendorCompliance(vendorId: string): { isValid: boolean; blockers: string[] } {
+    const profile = this.vendorProfiles.find((v) => v.id === vendorId);
+    if (!profile) return { isValid: false, blockers: ['Vendor not found in central registry'] };
+
+    const blockers: string[] = [];
+    if (!profile.isActive) blockers.push('Vendor profile is INACTIVE in central registry');
+    if (profile.vendorComplianceStatus === 'BLOCKED') blockers.push('Vendor is currently BLOCKED by Credit / Audit Committee');
+    if (profile.vendorComplianceStatus === 'EXPIRED') blockers.push('Empanelment validity expired; renewal mandatory');
+    if (!profile.bankAccount?.isVerified) blockers.push('Bank account IFSC / Penny Drop verification pending');
+    if (profile.gstRegistered && !profile.gstin) blockers.push('GSTIN missing for GST-registered vendor');
+    if (!profile.panVerified) blockers.push('Income Tax PAN verification pending with NSDL');
+
+    return {
+      isValid: blockers.length === 0,
+      blockers,
+    };
+  }
+
+  // Maker-Checker Separation Enforcement
+  validateMakerChecker(billId: string, checkerUserName: string): { isValid: boolean; error?: string } {
+    const bill = this.bills.find((b) => b.id === billId);
+    if (!bill) return { isValid: false, error: 'Bill not found' };
+
+    const makerName = bill.makerVerification?.verifiedBy?.trim().toLowerCase();
+    const candidateName = checkerUserName.trim().toLowerCase();
+
+    if (makerName && (makerName === candidateName || (makerName.includes('cpa') && candidateName.includes('cpa')))) {
+      return {
+        isValid: false,
+        error: `Segregation of Duties Violation: Maker (${bill.makerVerification?.verifiedBy}) cannot approve the same bill as Checker. A distinct Checker authority is required.`,
+      };
+    }
+
+    return { isValid: true };
+  }
+
+  // Recompute Bill with History Preservation
+  recomputeBill(
+    billId: string,
+    requestedBy: string,
+    reason: string,
+    changedRuleOrQty: string,
+    rateAdjustmentPercent: number = 0
+  ): BillMaster {
+    const bill = this.bills.find((b) => b.id === billId);
+    if (!bill) throw new Error(`Bill ${billId} not found`);
+
+    const oldAmount = bill.grossInvoiceAmount;
+    const history = bill.recomputationHistory || [];
+    const newVersion = history.length + 1;
+
+    // Apply adjustments if requested (e.g. rate card update or quantity adjustment)
+    if (rateAdjustmentPercent !== 0) {
+      bill.lineItems = bill.lineItems.map((item) => {
+        if (!item.isReimbursement) {
+          const newUnit = Math.round(item.unitRate * (1 + rateAdjustmentPercent / 100));
+          return {
+            ...item,
+            unitRate: newUnit,
+            amount: newUnit * item.quantity,
+          };
+        }
+        return item;
+      });
+    }
+
+    this.recalculateBill(billId);
+    const newAmount = bill.grossInvoiceAmount;
+
+    const recomputeRecord: RecomputationRecord = {
+      id: `RECOMP-${Date.now()}`,
+      calculationVersion: newVersion,
+      requestedBy,
+      requestedAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      reason,
+      oldAmount,
+      newAmount,
+      changedRuleOrQty,
+      status: 'RECOMPUTATION_COMPLETED',
+      approvalNotes: `Version v${newVersion} recalculated based on ${changedRuleOrQty}. Variance: ₹${(newAmount - oldAmount).toLocaleString()}`,
+    };
+
+    bill.recomputationHistory = [...history, recomputeRecord];
+    bill.status = 'DRAFT_BILL';
+
+    this.auditEvents.unshift({
+      id: `AUD-${Date.now()}`,
+      billId: bill.id,
+      caseId: bill.caseId,
+      eventType: 'DRAFT_BILL_GENERATED',
+      user: requestedBy,
+      role: 'MAKER',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      description: `Bill recomputation v${newVersion} completed. Amount changed from ₹${oldAmount.toLocaleString()} to ₹${newAmount.toLocaleString()}. Reason: ${reason}.`,
+    });
+
+    this.notify();
+    return bill;
+  }
+
+  // Put Bill On Hold
+  putBillOnHold(
+    billId: string,
+    user: string,
+    reason: string,
+    category: any,
+    expectedResolutionDate?: string,
+    remarks?: string
+  ): void {
+    const bill = this.bills.find((b) => b.id === billId);
+    if (!bill) throw new Error(`Bill ${billId} not found`);
+
+    bill.holdDetail = {
+      isHeld: true,
+      reason,
+      category: category || 'DOCUMENT_DEFICIENCY',
+      heldBy: user,
+      heldAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      expectedResolutionDate: expectedResolutionDate || '2026-10-15',
+      remarks: remarks || reason,
+    };
+
+    bill.status = 'ON_HOLD';
+
+    const event = this.billingEvents.find((e) => e.id === bill.billingEventId);
+    if (event) event.billingStatus = 'ON_HOLD';
+
+    this.auditEvents.unshift({
+      id: `AUD-${Date.now()}`,
+      billId: bill.id,
+      caseId: bill.caseId,
+      eventType: 'BILL_RETURNED',
+      user,
+      role: 'BILLING_OFFICER',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      description: `Bill placed ON HOLD under category ${category}. Reason: ${reason}. Expected resolution: ${expectedResolutionDate || 'TBD'}.`,
+    });
+
+    this.notify();
+  }
+
+  // Release Bill Hold
+  releaseBillHold(billId: string, user: string, remarks?: string): void {
+    const bill = this.bills.find((b) => b.id === billId);
+    if (!bill) throw new Error(`Bill ${billId} not found`);
+
+    if (bill.holdDetail) {
+      bill.holdDetail.isHeld = false;
+      bill.holdDetail.releasedBy = user;
+      bill.holdDetail.releasedAt = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    }
+
+    // Restore to appropriate stage based on progress
+    if (bill.checkerApproval) {
+      bill.status = 'APPROVED_FOR_PAYMENT';
+    } else if (bill.makerVerification) {
+      bill.status = 'BILL_APPROVAL';
+    } else if (bill.vendorInvoice) {
+      bill.status = 'BILL_VERIFICATION';
+    } else {
+      bill.status = 'DRAFT_BILL';
+    }
+
+    const event = this.billingEvents.find((e) => e.id === bill.billingEventId);
+    if (event) event.billingStatus = bill.status;
+
+    this.auditEvents.unshift({
+      id: `AUD-${Date.now()}`,
+      billId: bill.id,
+      caseId: bill.caseId,
+      eventType: 'BILL_VERIFIED_BY_MAKER',
+      user,
+      role: 'BILLING_OFFICER',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      description: `Hold released for Bill ${bill.id}. Restored to status ${bill.status}. Remarks: ${remarks || 'Hold cleared after compliance verification'}.`,
+    });
+
+    this.notify();
+  }
+
+  // Retry Finance ERP Posting
+  retryFinanceERP(billId: string, user: string): { erpDocNo: string; voucherNo: string } {
+    const bill = this.bills.find((b) => b.id === billId);
+    if (!bill) throw new Error(`Bill ${billId} not found`);
+
+    const retryCount = (bill.financePosting?.retryCount || 0) + 1;
+    const erpDocNo = `ERP-SAP-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    const voucherNo = `VCH-${Math.floor(100000 + Math.random() * 900000)}`;
+    const glCode =
+      bill.vendorType === 'EXTERNAL_VALUER'
+        ? 'GL-542100-VALUATION-FEES'
+        : 'GL-542200-LEGAL-FEES';
+
+    bill.financePosting = {
+      idempotencyKey: `IDEMP-RETRY-${bill.id}-${Date.now()}`,
+      erpDocNo,
+      voucherNo,
+      glCode,
+      costCenter: bill.financePosting?.costCenter || 'CC-APF-WEST-RETAIL',
+      branchRegion: 'Pune Hub / West Cluster',
+      postedAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      postedBy: user,
+      postingStatus: 'POSTED',
+      responseMessage: `Voucher re-posted successfully in SAP S/4HANA Accounts Payable on Retry #${retryCount}.`,
+      payloadVersion: 'v2.1',
+      retryCount,
+      lastRetryAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+    };
+
+    bill.status = 'SENT_TO_FINANCE';
+
+    const event = this.billingEvents.find((e) => e.id === bill.billingEventId);
+    if (event) event.billingStatus = 'SENT_TO_FINANCE';
+
+    this.auditEvents.unshift({
+      id: `AUD-${Date.now()}`,
+      billId: bill.id,
+      caseId: bill.caseId,
+      eventType: 'SENT_TO_FINANCE_ERP',
+      user,
+      role: 'FINANCE',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      description: `ERP posting retry #${retryCount} successful. Generated Doc: ${erpDocNo}, Voucher: ${voucherNo}.`,
+    });
+
+    this.notify();
+    return { erpDocNo, voucherNo };
+  }
+
+  // Fail Finance ERP (for simulation & error queue demonstration)
+  failFinanceERP(billId: string, user: string, errorCode: string = 'SAP-ERR-GL-LOCKED', errorMessage: string = 'General Ledger account temporarily locked during month-end closing'): void {
+    const bill = this.bills.find((b) => b.id === billId);
+    if (!bill) throw new Error(`Bill ${billId} not found`);
+
+    bill.financePosting = {
+      idempotencyKey: `IDEMP-FAIL-${bill.id}-${Date.now()}`,
+      erpDocNo: 'PENDING_FAIL',
+      voucherNo: 'PENDING_FAIL',
+      glCode: 'GL-542100',
+      costCenter: 'CC-APF-WEST-RETAIL',
+      branchRegion: 'Pune Hub',
+      postedAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      postedBy: user,
+      postingStatus: 'FAILED',
+      responseMessage: errorMessage,
+      payloadVersion: 'v2.1',
+      errorCode,
+      errorMessage,
+      retryCount: (bill.financePosting?.retryCount || 0) + 1,
+      lastRetryAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+    };
+
+    bill.status = 'ERP_FAILED';
+
+    this.auditEvents.unshift({
+      id: `AUD-${Date.now()}`,
+      billId: bill.id,
+      caseId: bill.caseId,
+      eventType: 'SENT_TO_FINANCE_ERP',
+      user,
+      role: 'FINANCE',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      description: `ERP Posting FAILED for Bill ${bill.id}. Error [${errorCode}]: ${errorMessage}. Moved to ERP Error Queue.`,
+    });
+
+    this.notify();
+  }
+
+  // Payment Advice Lifecycle
+  generatePaymentAdvice(billId: string, user: string = 'Treasury Ops'): void {
+    const bill = this.bills.find((b) => b.id === billId);
+    if (!bill) throw new Error(`Bill ${billId} not found`);
+
+    bill.paymentAdviceStatus = 'PAYMENT_ADVICE_GENERATED';
+
+    this.auditEvents.unshift({
+      id: `AUD-${Date.now()}`,
+      billId: bill.id,
+      caseId: bill.caseId,
+      eventType: 'PAYMENT_PROCESSED',
+      user,
+      role: 'TREASURY',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      description: `Payment Advice document generated and queued for vendor notification for Bill ${bill.id}.`,
+    });
+
+    // Advance to SENT
+    setTimeout(() => {
+      bill.paymentAdviceStatus = 'PAYMENT_ADVICE_SENT';
+      this.notify();
+    }, 200);
+
+    this.notify();
+  }
+
+  confirmPaymentAdviceReceived(billId: string): void {
+    const bill = this.bills.find((b) => b.id === billId);
+    if (!bill) throw new Error(`Bill ${billId} not found`);
+
+    bill.paymentAdviceStatus = 'PAYMENT_CONFIRMATION_RECEIVED';
+    this.notify();
+  }
+
+  // Periodic / Consolidated Agency Bills Summary
+  getPeriodicBillsSummary(): PeriodicBillSummary[] {
+    const groupMap = new Map<string, BillMaster[]>();
+
+    this.bills.forEach((b) => {
+      const monthStr = b.createdAt ? b.createdAt.substring(0, 7) : '2026-09';
+      const key = `${monthStr}_${b.vendorId}`;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, []);
+      }
+      groupMap.get(key)!.push(b);
+    });
+
+    const summaries: PeriodicBillSummary[] = [];
+    groupMap.forEach((billList, _key) => {
+      const first = billList[0];
+      const month = first.createdAt ? first.createdAt.substring(0, 7) : '2026-09';
+      const totalGross = billList.reduce((acc, b) => acc + b.subtotalProfessionalFee, 0);
+      const totalTax = billList.reduce((acc, b) => acc + b.taxDetails.totalTax, 0);
+      const totalNet = billList.reduce((acc, b) => acc + b.netPayable, 0);
+
+      summaries.push({
+        periodMonth: month,
+        vendorId: first.vendorId,
+        vendorName: first.vendorName,
+        vendorType: first.vendorType,
+        totalBillsCount: billList.length,
+        totalCasesCount: new Set(billList.map((b) => b.caseId)).size,
+        totalGrossFee: totalGross,
+        totalTax,
+        totalNetPayable: totalNet,
+        bills: billList,
+      });
+    });
+
+    return summaries.sort((a, b) => b.periodMonth.localeCompare(a.periodMonth));
+  }
+
+  // Cancel billing event (non-billable policy)
+  cancelBillingEvent(
+    eventId: string,
+    reason: string,
+    policyOutcome: 'NON_BILLABLE' | 'PARTIALLY_BILLABLE' | 'REQUIRES_APPROVAL' = 'NON_BILLABLE'
+  ): void {
+    const event = this.billingEvents.find((e) => e.id === eventId);
+    if (!event) throw new Error(`Event ${eventId} not found`);
+
+    event.billingStatus = 'CANCELLED';
+    event.isBillable = policyOutcome !== 'NON_BILLABLE';
+    event.nonBillableReason = reason;
+
+    this.auditEvents.unshift({
+      id: `AUD-${Date.now()}`,
+      billId: 'N/A',
+      caseId: event.caseId,
+      eventType: 'BILL_REJECTED',
+      user: 'Operations Officer',
+      role: 'CPA',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      description: `Billing Event ${eventId} cancelled (${policyOutcome}). Reason: ${reason}.`,
+    });
+
+    this.notify();
+  }
+
   // Reset to initial demo state
   resetDemoData() {
     this.vendorProfiles = [...INITIAL_VENDOR_PROFILES];
     this.rateCards = [...INITIAL_RATE_CARDS];
     this.billingEvents = [...INITIAL_BILLING_EVENTS];
     this.bills = [...INITIAL_BILLS];
+    this.taxRules = [...INITIAL_TAX_RULES];
     this.initAuditLog();
     this.syncEligibilityFromCases();
     this.notify();

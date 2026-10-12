@@ -840,16 +840,53 @@ export const CENTRAL_UNIT_MASTER: UnitMaster[] = [
   ...generateUnitsForTower('TWR-MUM-003-C1', 68, 4, 'C1', 42000),
 ];
 
+// Dynamic Master Store Registry hooks (allows runtime synchronization with MasterStore)
+let dynamicBuilderResolver: ((id: string) => BuilderMaster | undefined) | null = null;
+let dynamicBuildersResolver: (() => BuilderMaster[]) | null = null;
+let dynamicProjectResolver: ((id: string) => ProjectMaster | undefined) | null = null;
+let dynamicProjectsByBuilderResolver: ((builderId: string) => ProjectMaster[]) | null = null;
+
+export function registerMasterStoreResolvers(resolvers: {
+  getBuilderById: (id: string) => BuilderMaster | undefined;
+  getBuilders: () => BuilderMaster[];
+  getProjectById: (id: string) => ProjectMaster | undefined;
+  getProjectsByBuilder: (builderId: string) => ProjectMaster[];
+}) {
+  dynamicBuilderResolver = resolvers.getBuilderById;
+  dynamicBuildersResolver = resolvers.getBuilders;
+  dynamicProjectResolver = resolvers.getProjectById;
+  dynamicProjectsByBuilderResolver = resolvers.getProjectsByBuilder;
+}
+
 // Relational Access Helpers (Single Source of Truth)
 export function getBuilderById(builderId: string): BuilderMaster | undefined {
+  if (dynamicBuilderResolver) {
+    const dynamicFound = dynamicBuilderResolver(builderId);
+    if (dynamicFound) return dynamicFound;
+  }
   return CENTRAL_BUILDER_MASTER.find((b) => b.id === builderId);
 }
 
+export function getAllBuilders(): BuilderMaster[] {
+  if (dynamicBuildersResolver) {
+    return dynamicBuildersResolver();
+  }
+  return CENTRAL_BUILDER_MASTER;
+}
+
 export function getProjectById(projectId: string): ProjectMaster | undefined {
+  if (dynamicProjectResolver) {
+    const dynamicFound = dynamicProjectResolver(projectId);
+    if (dynamicFound) return dynamicFound;
+  }
   return CENTRAL_PROJECT_MASTER.find((p) => p.id === projectId);
 }
 
 export function getProjectsByBuilder(builderId: string): ProjectMaster[] {
+  if (dynamicProjectsByBuilderResolver) {
+    const dynamicFound = dynamicProjectsByBuilderResolver(builderId);
+    if (dynamicFound && dynamicFound.length > 0) return dynamicFound;
+  }
   return CENTRAL_PROJECT_MASTER.filter((p) => p.builderId === builderId);
 }
 

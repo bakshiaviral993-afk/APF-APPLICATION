@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { UserAccount, APFCase } from '../../types/apfTransaction';
 import { apfStore } from '../../services/apfStore';
+import { masterStore } from '../../services/masterStore';
 import {
   CENTRAL_BUILDER_MASTER,
   CENTRAL_PROJECT_MASTER,
   CENTRAL_PHASE_MASTER,
   CENTRAL_TOWER_MASTER,
   CENTRAL_UNIT_MASTER,
+  getBuilderById,
   getProjectsByBuilder,
   getPhasesByProject,
   getTowersByProject,
@@ -55,8 +57,15 @@ export const InitiateAPFPage: React.FC<InitiateAPFPageProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form State
+  const [builders, setBuilders] = useState(() => masterStore.getBuilders());
   const [selectedBuilderId, setSelectedBuilderId] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
+
+  React.useEffect(() => {
+    const handleUpdate = () => setBuilders(masterStore.getBuilders());
+    handleUpdate();
+    return masterStore.subscribe(handleUpdate);
+  }, []);
   const [selectedPhaseId, setSelectedPhaseId] = useState('');
   const [selectedTowerId, setSelectedTowerId] = useState('');
   const [selectedUnitCount, setSelectedUnitCount] = useState<number>(0);
@@ -125,7 +134,7 @@ export const InitiateAPFPage: React.FC<InitiateAPFPageProps> = ({
     setSelectedUnitCount(units.length);
   };
 
-  const selectedBuilder = CENTRAL_BUILDER_MASTER.find((b) => b.id === selectedBuilderId);
+  const selectedBuilder = masterStore.getBuilderById(selectedBuilderId) || getBuilderById(selectedBuilderId);
   const selectedProject = CENTRAL_PROJECT_MASTER.find((p) => p.id === selectedProjectId);
   const selectedTower = CENTRAL_TOWER_MASTER.find((t) => t.id === selectedTowerId);
 
@@ -241,7 +250,7 @@ export const InitiateAPFPage: React.FC<InitiateAPFPageProps> = ({
                   className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-sky-500 focus:outline-hidden"
                 >
                   <option value="">-- Select Builder --</option>
-                  {CENTRAL_BUILDER_MASTER.map((b) => (
+                  {builders.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.legalName} ({b.pan}) · Grade: {b.internalRiskGrade || 'A'}
                     </option>

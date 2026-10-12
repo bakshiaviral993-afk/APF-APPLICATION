@@ -1263,11 +1263,17 @@ class IntelligentDiscoveryService {
     discovered: DiscoveredBuilderData,
     currentUser: UserAccount
   ): BuilderMaster {
-    // Check if updating existing or inserting new
-    const existing = masterStore.getBuilderById(discovered.id);
+    // Check if updating existing or inserting new (by ID, PAN, or CIN)
+    const existing =
+      masterStore.getBuilderById(discovered.id) ||
+      masterStore.getBuilders().find(
+        (b) =>
+          (b.pan && discovered.pan && b.pan.trim().toUpperCase() === discovered.pan.trim().toUpperCase()) ||
+          (b.cin && discovered.cin && b.cin.trim().toUpperCase() === discovered.cin.trim().toUpperCase())
+      );
 
     const builderData: BuilderMaster = {
-      id: discovered.id,
+      id: existing ? existing.id : discovered.id,
       legalName: discovered.fields.legalName?.editedValue || discovered.legalName,
       tradeName: discovered.fields.tradeName?.editedValue || discovered.tradeName,
       groupName: discovered.fields.groupName?.editedValue || discovered.groupName,
@@ -1283,6 +1289,8 @@ class IntelligentDiscoveryService {
       isActive: true,
       approvalStatus: 'APPROVED', // Discovered from verified regulatory sources & reviewed by authorized user
       version: existing ? (existing.version || 1) + 1 : 1,
+      totalExposureCr: existing?.totalExposureCr ?? 120.0,
+      internalRiskGrade: existing?.internalRiskGrade || 'A+',
       createdBy: currentUser.name,
       createdAt: existing ? existing.createdAt : new Date().toISOString(),
       updatedBy: currentUser.name,
@@ -1290,12 +1298,10 @@ class IntelligentDiscoveryService {
     };
 
     if (existing) {
-      masterStore.updateBuilder(builderData.id, builderData, currentUser, 'Updated from regulatory discovery');
+      return masterStore.updateBuilder(existing.id, builderData, currentUser, 'Updated from regulatory discovery');
     } else {
-      masterStore.addBuilder(builderData, currentUser);
+      return masterStore.addBuilder(builderData, currentUser);
     }
-
-    return builderData;
   }
 
   // Master synchronization helper: Save discovered project into production MasterStore

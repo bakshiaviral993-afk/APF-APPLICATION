@@ -2,8 +2,20 @@ import React from 'react';
 import { useAPF } from '../../context/APFContext';
 import { PieChart, TrendingUp, ShieldCheck, MapPin, BarChart2, ChevronRight } from 'lucide-react';
 
-export const Screen30_PortfolioIntelligence: React.FC = () => {
+interface Screen30_PortfolioIntelligenceProps {
+  onBack?: () => void;
+}
+
+export const Screen30_PortfolioIntelligence: React.FC<Screen30_PortfolioIntelligenceProps> = ({ onBack }) => {
   const { setCurrentScreen } = useAPF();
+
+  const handleReturn = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      setCurrentScreen('01');
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -23,10 +35,10 @@ export const Screen30_PortfolioIntelligence: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setCurrentScreen('01')}
-            className="px-3.5 py-2 rounded-lg bg-[#19638c] hover:bg-[#145070] text-white text-xs font-semibold transition-colors shadow-sm"
+            onClick={handleReturn}
+            className="px-3.5 py-2 rounded-lg bg-[#19638c] hover:bg-[#145070] text-white text-xs font-semibold transition-colors shadow-sm cursor-pointer"
           >
-            Return to Control Tower (Screen 01) →
+            {onBack ? '← Back to Governance' : 'Return to Control Tower (Screen 01) →'}
           </button>
           <div className="text-xs text-[#627d98] font-medium hidden md:flex items-center gap-1.5">
             <span>Bank POC</span>

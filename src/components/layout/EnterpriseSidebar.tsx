@@ -27,6 +27,8 @@ import {
   Settings,
   Users2,
   ClipboardList,
+  UserCheck,
+  Shield,
 } from 'lucide-react';
 import { canAccessExposureReport } from '../../utils/exposurePermissions';
 
@@ -259,6 +261,12 @@ export const EnterpriseSidebar: React.FC<EnterpriseSidebarProps> = ({
         <GroupHeader label="Governance" />
         <NavItem target="DOCUMENT_VAULT" icon={Files} label="Documents" />
         <NavItem target="REPORTS" icon={FileBarChart} label="Reports & Audit" />
+        {(isAdmin || isCom) && (
+          <NavItem target="USER_MANAGEMENT" icon={UserCheck} label="User Management" />
+        )}
+        {(isAdmin || isCom) && (
+          <NavItem target="ROLE_MANAGEMENT" icon={Shield} label="Role Management" />
+        )}
         {isAdmin && (
           <NavItem target="ADMIN_CONFIG" icon={Settings} label="Configuration" />
         )}

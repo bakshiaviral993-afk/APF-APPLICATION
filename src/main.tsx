@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { APFProvider } from './context/APFContext';
 import './index.css';
 
 // Enterprise Google Maps Platform Error/Notice Interceptor
@@ -20,6 +21,8 @@ console.error = (...args: unknown[]) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <APFProvider>
+      <App />
+    </APFProvider>
   </StrictMode>,
 );

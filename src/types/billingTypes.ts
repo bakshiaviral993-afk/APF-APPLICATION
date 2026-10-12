@@ -4,19 +4,33 @@
 export type VendorType = 'EXTERNAL_VALUER' | 'EXTERNAL_ADVOCATE';
 
 export type BillingStatus =
+  | 'SERVICE_COMPLETED'
+  | 'REPORT_SUBMITTED'
+  | 'REPORT_ACCEPTED'
   | 'BILLING_ELIGIBLE'
   | 'DRAFT_BILL'
   | 'VENDOR_INVOICE_PENDING'
   | 'INVOICE_SUBMITTED'
+  | 'INVOICE_VARIANCE'
+  | 'INVOICE_RETURNED'
+  | 'INVOICE_RESUBMITTED'
+  | 'INVOICE_ACCEPTED'
   | 'BILL_VERIFICATION'
   | 'BILL_APPROVAL'
   | 'APPROVED_FOR_PAYMENT'
   | 'SENT_TO_FINANCE'
+  | 'ERP_POSTED'
+  | 'ERP_FAILED'
+  | 'ERP_RETRY'
+  | 'PAYMENT_SCHEDULED'
   | 'PAYMENT_IN_PROCESS'
   | 'PAID'
+  | 'PAYMENT_CONFIRMATION_RECEIVED'
   | 'RETURNED_FOR_CORRECTION'
   | 'REJECTED'
   | 'ON_HOLD'
+  | 'HOLD_RELEASED'
+  | 'RECOMPUTATION_REQUESTED'
   | 'PARTIALLY_PAID'
   | 'PAYMENT_FAILED'
   | 'CANCELLED';
@@ -182,6 +196,12 @@ export interface BillingEvent {
   reworkRequired?: boolean;
   reworkReason?: string;
   reworkFeeAllowed?: boolean;
+  vendorUserId?: string;
+  billingEligibilityDate?: string;
+  billingPolicyRule?: string;
+  sourceModule?: 'TECHNICAL_VALUATION' | 'LEGAL_DD';
+  isBillable?: boolean;
+  nonBillableReason?: string;
   createdAt: string;
 }
 
@@ -231,6 +251,68 @@ export interface VendorInvoice {
   bankDetailsConfirmed: boolean;
 }
 
+export interface TaxRuleMaster {
+  id: string;
+  ruleCode: string;
+  taxRuleCode: string;
+  gstRuleCode: string;
+  withholdingRuleCode: string;
+  tdsRuleCode: string;
+  placeOfSupplyRule: string;
+  vendorCategory: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+  cgstRatePct: number;
+  sgstRatePct: number;
+  igstRatePct: number;
+  tdsRatePct: number;
+  applicability: string;
+  approvalStatus: 'APPROVED' | 'DRAFT' | 'SUPERSEDED';
+  description: string;
+}
+
+export interface RecomputationRecord {
+  id: string;
+  calculationVersion: number;
+  requestedBy: string;
+  requestedAt: string;
+  reason: string;
+  oldAmount: number;
+  newAmount: number;
+  changedRuleOrQty: string;
+  status:
+    | 'RECOMPUTATION_REQUESTED'
+    | 'RECOMPUTATION_IN_PROGRESS'
+    | 'RECOMPUTATION_COMPLETED'
+    | 'RECOMPUTATION_FAILED';
+  approvalNotes?: string;
+}
+
+export interface HoldRecord {
+  isHeld: boolean;
+  reason: string;
+  category: 'DOCUMENT_DEFICIENCY' | 'RATE_DISPUTE' | 'COMPLIANCE_CHECK' | 'BANK_INQUIRY' | 'FRAUD_ALERT' | 'OTHER';
+  heldBy: string;
+  heldAt: string;
+  expectedResolutionDate?: string;
+  remarks: string;
+  releasedBy?: string;
+  releasedAt?: string;
+}
+
+export interface PeriodicBillSummary {
+  periodMonth: string;
+  vendorId: string;
+  vendorName: string;
+  vendorType: VendorType;
+  totalBillsCount: number;
+  totalCasesCount: number;
+  totalGrossFee: number;
+  totalTax: number;
+  totalNetPayable: number;
+  bills: BillMaster[];
+}
+
 export interface FinancePostingDetail {
   idempotencyKey: string;
   erpDocNo: string;
@@ -240,9 +322,13 @@ export interface FinancePostingDetail {
   branchRegion: string;
   postedAt: string;
   postedBy: string;
-  postingStatus: 'POSTED' | 'ACKNOWLEDGED' | 'FAILED';
+  postingStatus: 'POSTED' | 'ACKNOWLEDGED' | 'FAILED' | 'RETRY';
   responseMessage: string;
   payloadVersion: string;
+  errorCode?: string;
+  errorMessage?: string;
+  retryCount?: number;
+  lastRetryAt?: string;
 }
 
 export interface PaymentDetail {
@@ -364,6 +450,17 @@ export interface BillMaster {
   paymentDetail?: PaymentDetail;
   debitCreditNotes: DebitCreditNote[];
   queries: BillingQuery[];
+  recomputationHistory?: RecomputationRecord[];
+  holdDetail?: HoldRecord;
+  paymentAdviceStatus?:
+    | 'PAYMENT_ADVICE_GENERATED'
+    | 'PAYMENT_ADVICE_SENT'
+    | 'PAYMENT_ADVICE_RECEIVED'
+    | 'PAYMENT_CONFIRMATION_RECEIVED';
+  hsnSacCode?: string;
+  billingPeriod?: string;
+  isConsolidated?: boolean;
+  associatedCaseIds?: string[];
   createdAt: string;
   updatedAt: string;
 }

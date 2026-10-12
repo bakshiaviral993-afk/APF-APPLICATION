@@ -25,6 +25,7 @@ import { LosIntegrationsView } from './components/operations/LosIntegrationsView
 import { DocumentVaultView } from './components/governance/DocumentVaultView';
 import { ReportsLandingView } from './components/reports/ReportsLandingView';
 import { AdminConfigurationView } from './components/governance/AdminConfigurationView';
+import { UserManagementModule } from './components/governance/userManagement/UserManagementModule';
 import { QueryTrayView } from './components/queries/QueryTrayView';
 import { NewCaseModal } from './components/modals/NewCaseModal';
 import { PendingMasterApprovalsModal } from './components/masters/PendingMasterApprovalsModal';
@@ -359,10 +360,23 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               onBack={handleBackToDashboard}
             />
+          ) : activeView === 'USER_MANAGEMENT' ? (
+            <UserManagementModule
+              currentUser={currentUser}
+              onBack={handleBackToDashboard}
+              initialTab="USERS"
+            />
+          ) : activeView === 'ROLE_MANAGEMENT' ? (
+            <UserManagementModule
+              currentUser={currentUser}
+              onBack={handleBackToDashboard}
+              initialTab="ROLES"
+            />
           ) : activeView === 'ADMIN_CONFIG' ? (
             <AdminConfigurationView
               currentUser={currentUser}
               onBack={handleBackToDashboard}
+              onNavigateToUserManagement={() => setActiveView('USER_MANAGEMENT')}
             />
           ) : (
             /* Default: DASHBOARD (role-based overview) */
@@ -371,6 +385,7 @@ export const App: React.FC = () => {
               onOpenCase={handleOpenCase}
               onInitiateNewCase={() => setActiveView('INITIATE_APF')}
               onNavigateToQueries={() => setActiveView('QUERY_TRAY')}
+              onNavigateToModule={handleNavigateToModule}
             />
           )}
         </main>

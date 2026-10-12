@@ -18,11 +18,13 @@ import {
 interface AdminConfigurationViewProps {
   currentUser: UserAccount;
   onBack: () => void;
+  onNavigateToUserManagement?: () => void;
 }
 
 export const AdminConfigurationView: React.FC<AdminConfigurationViewProps> = ({
   currentUser,
   onBack,
+  onNavigateToUserManagement,
 }) => {
   const [activeTab, setActiveTab] = useState<
     | 'USERS_ROLES'
@@ -92,7 +94,18 @@ export const AdminConfigurationView: React.FC<AdminConfigurationViewProps> = ({
         <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs space-y-4 text-xs">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <h3 className="font-bold text-slate-900">User Accounts & Assigned Roles (Active Directory / SSO Mapped)</h3>
-            <span className="text-slate-500 font-mono">14 User Accounts Provisioned</span>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-500 font-mono">Platform Identity Directory</span>
+              {onNavigateToUserManagement && (
+                <button
+                  type="button"
+                  onClick={onNavigateToUserManagement}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+                >
+                  Manage Users & Roles →
+                </button>
+              )}
+            </div>
           </div>
           <div className="space-y-2">
             {[

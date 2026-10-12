@@ -24,6 +24,8 @@ export type NavigationModule =
   // Governance
   | 'DOCUMENT_VAULT'
   | 'REPORTS'
+  | 'USER_MANAGEMENT'
+  | 'ROLE_MANAGEMENT'
   | 'ADMIN_CONFIG'
   // Case Detail Workspace
   | 'CASE_DETAIL';

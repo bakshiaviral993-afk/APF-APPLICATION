@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CENTRAL_BUILDER_MASTER } from '../../data/centralMasterData';
+import { masterStore } from '../../services/masterStore';
+import { demoExposureService } from '../../services/demoExposureService';
 import { BuilderExposure360Report } from '../exposure/BuilderExposure360Report';
 import { DollarSign, ShieldAlert, BarChart3, TrendingUp, AlertCircle, Building2, Layers, ArrowRight } from 'lucide-react';
 import { UserAccount } from '../../types/apfTransaction';
@@ -18,8 +19,19 @@ export const GlobalExposureView: React.FC<GlobalExposureViewProps> = ({
   onNavigateBack,
   onNavigateToValuation,
 }) => {
+  const [builders, setBuilders] = useState(() => masterStore.getBuilders());
   const [activeTab, setActiveTab] = useState<'BUILDER_360' | 'GROUP_CAPS'>('BUILDER_360');
-  const [selectedBuilderId, setSelectedBuilderId] = useState<string>(initialBuilderId);
+  const [selectedBuilderId, setSelectedBuilderId] = useState<string>(
+    initialBuilderId || (builders[0]?.id ?? 'BLD-PUN-001')
+  );
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setBuilders(masterStore.getBuilders());
+    };
+    handleUpdate();
+    return masterStore.subscribe(handleUpdate);
+  }, []);
 
   useEffect(() => {
     if (initialBuilderId) {
@@ -39,18 +51,19 @@ export const GlobalExposureView: React.FC<GlobalExposureViewProps> = ({
     );
   }
 
-  const groupCaps = [
-    { group: 'Kolte-Patil Group', builderId: 'BLD-PUN-001', capCr: 600, utilizedCr: 484.7, activeApfs: 4, rating: 'A+', risk: 'Low' },
-    { group: 'Shapoorji Pallonji Group', builderId: 'BLD-PUN-002', capCr: 1200, utilizedCr: 840.0, activeApfs: 8, rating: 'AA-', risk: 'Low' },
-    { group: 'Godrej Properties Group', builderId: 'BLD-PUN-003', capCr: 1500, utilizedCr: 910.0, activeApfs: 11, rating: 'AAA', risk: 'Low' },
-    { group: 'Mahindra Lifespaces Group', builderId: 'BLD-PUN-004', capCr: 800, utilizedCr: 420.0, activeApfs: 5, rating: 'AA+', risk: 'Low' },
-    { group: 'VTP Realty Group', builderId: 'BLD-PUN-005', capCr: 450, utilizedCr: 310.5, activeApfs: 3, rating: 'A', risk: 'Moderate' },
-    { group: 'Lodha Group (Macrotech)', builderId: 'BLD-MUM-001', capCr: 2000, utilizedCr: 1420.0, activeApfs: 14, rating: 'AA', risk: 'Low' },
-    { group: 'Oberoi Realty Group', builderId: 'BLD-MUM-002', capCr: 1000, utilizedCr: 550.0, activeApfs: 6, rating: 'AA+', risk: 'Low' },
-    { group: 'Rustomjee Group (Keystone)', builderId: 'BLD-MUM-003', capCr: 650, utilizedCr: 410.0, activeApfs: 4, rating: 'A+', risk: 'Low' },
-    { group: 'Runwal Group', builderId: 'BLD-MUM-004', capCr: 500, utilizedCr: 340.0, activeApfs: 3, rating: 'A', risk: 'Moderate' },
-    { group: 'Raymond Realty Group', builderId: 'BLD-MUM-005', capCr: 400, utilizedCr: 180.0, activeApfs: 2, rating: 'A+', risk: 'Low' },
-  ];
+  // Dynamic group caps matching all builders in MasterStore
+  const groupCaps = builders.map((b) => {
+    const summary = demoExposureService.getBuilderSummary(b.id);
+    return {
+      group: b.groupName || `${b.legalName} Group`,
+      builderId: b.id,
+      capCr: summary.limitCr,
+      utilizedCr: summary.groupExposureCr,
+      activeApfs: b.totalOngoingProjects || 3,
+      rating: b.internalRiskGrade || 'A+',
+      risk: summary.riskBand === 'LOW' ? 'Low' : summary.riskBand === 'MEDIUM' ? 'Moderate' : 'High',
+    };
+  });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -91,7 +104,7 @@ export const GlobalExposureView: React.FC<GlobalExposureViewProps> = ({
                 <span className="text-xs font-bold uppercase tracking-wider text-[#19638c] bg-[#e8f1f5] px-2.5 py-0.5 rounded-md">
                   Portfolio Governance
                 </span>
-                <span className="text-xs text-[#829ab1] font-mono">10 Builder Groups</span>
+                <span className="text-xs text-[#829ab1] font-mono">{groupCaps.length} Builder Groups</span>
               </div>
               <h1 className="text-base sm:text-lg font-bold text-[#102a43] mt-0.5">
                 Group Exposure 360 & Concentration Limits

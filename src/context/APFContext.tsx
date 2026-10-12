@@ -405,10 +405,53 @@ export const APFProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   );
 };
 
+const DEFAULT_APF_FALLBACK_CONTEXT: APFContextType = {
+  currentScreen: '01',
+  setCurrentScreen: () => {},
+  currentRole: 'Credit',
+  setCurrentRole: () => {},
+  selectedGroup: DEMO_BUILDER_GROUP,
+  setSelectedGroup: () => {},
+  selectedCompany: DEMO_COMPANIES[0],
+  setSelectedCompany: () => {},
+  selectedProject: DEMO_PROJECTS[0],
+  setSelectedProject: () => {},
+  selectedTower: DEMO_TOWERS[1] || null,
+  setSelectedTower: () => {},
+  selectedUnit: DEMO_UNITS[0] || null,
+  setSelectedUnit: () => {},
+  reconciledFacilities: DEMO_RECONCILED_FACILITIES,
+  approveGoldenRecord: () => {},
+  overrideReconciliation: () => {},
+  aiObservations: DEMO_AI_OBSERVATIONS,
+  updateObservationDecision: () => {},
+  committeePack: DEMO_COMMITTEE_PACK,
+  committeeDecision: null,
+  setCommitteeDecision: () => {},
+  recordCommitteeDecision: () => {},
+  toggleConditionStatus: () => {},
+  addCondition: () => {},
+  ewsEvents: [],
+  acknowledgeEWS: () => {},
+  createTaskFromEWS: () => {},
+  activeEvidence: null,
+  setActiveEvidence: () => {},
+  auditLogs: [],
+  isAuditLogOpen: false,
+  setIsAuditLogOpen: () => {},
+  addAuditLog: () => {},
+  tourStep: 1,
+  isTourOpen: false,
+  setIsTourOpen: () => {},
+  goToTourStep: () => {},
+  nextTourStep: () => {},
+  prevTourStep: () => {},
+};
+
 export const useAPF = (): APFContextType => {
   const context = useContext(APFContext);
   if (!context) {
-    throw new Error('useAPF must be used within an APFProvider');
+    return DEFAULT_APF_FALLBACK_CONTEXT;
   }
   return context;
 };

@@ -22,6 +22,7 @@ import {
   CENTRAL_PHASE_MASTER,
   CENTRAL_TOWER_MASTER,
   CENTRAL_UNIT_MASTER,
+  registerMasterStoreResolvers,
 } from '../data/centralMasterData';
 
 const STORAGE_KEY_MASTERS = 'PROVAL_APF_MASTERS_V3';
@@ -765,6 +766,8 @@ class MasterDataStore {
       isActive: true,
       approvalStatus,
       version: 1,
+      totalExposureCr: builderData.totalExposureCr ?? 120.0,
+      internalRiskGrade: builderData.internalRiskGrade || 'A+',
       createdBy: `${user.name} (${user.role})`,
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
       ...builderData,
@@ -1827,3 +1830,11 @@ class MasterDataStore {
 }
 
 export const masterStore = new MasterDataStore();
+
+// Register runtime dynamic resolvers with centralMasterData
+registerMasterStoreResolvers({
+  getBuilderById: (id: string) => masterStore.getBuilderById(id),
+  getBuilders: () => masterStore.getBuilders(),
+  getProjectById: (id: string) => masterStore.getProjectById(id),
+  getProjectsByBuilder: (builderId: string) => masterStore.getProjects({ builderId }),
+});
