@@ -66,10 +66,10 @@ export const LEGAL_EMPANELMENT_MASTER: LegalEmpanelmentItem[] = [
     status: 'ACTIVE',
   },
   {
-    id: 'LEG-EMP-DEMO',
+    id: 'LEG-EMP-APEX',
     empanelmentNo: 'EMP-LEG-2024-042',
-    name: 'Demo Legal Associates',
-    firmName: 'Demo Legal Associates',
+    name: 'Apex Legal Associates',
+    firmName: 'Apex Legal Associates',
     type: 'EXTERNAL',
     city: 'Pune',
     state: 'Maharashtra',
@@ -93,7 +93,7 @@ export const LEGAL_EMPANELMENT_MASTER: LegalEmpanelmentItem[] = [
         name: 'Adv. Sanjay Trivedi',
         role: 'Managing Partner / Firm Admin',
         barNumber: 'MAH/1820/2005',
-        email: 'sanjay.trivedi@demolegal.in',
+        email: 'sanjay.trivedi@apexlegal.in',
         mobile: '+91 98220 18492',
         activeCount: 2,
       },
@@ -102,7 +102,7 @@ export const LEGAL_EMPANELMENT_MASTER: LegalEmpanelmentItem[] = [
         name: 'Adv. Ananya Deshmukh',
         role: 'Senior Title Advocate',
         barNumber: 'MAH/4921/2012',
-        email: 'ananya.deshmukh@demolegal.in',
+        email: 'ananya.deshmukh@apexlegal.in',
         mobile: '+91 98221 44021',
         activeCount: 3,
       },
@@ -111,7 +111,7 @@ export const LEGAL_EMPANELMENT_MASTER: LegalEmpanelmentItem[] = [
         name: 'Adv. Siddharth Kulkarni',
         role: 'Associate Advocate',
         barNumber: 'MAH/7391/2018',
-        email: 'siddharth.kulkarni@demolegal.in',
+        email: 'siddharth.kulkarni@apexlegal.in',
         mobile: '+91 94220 55198',
         activeCount: 1,
       },
@@ -394,7 +394,7 @@ export const SEED_LEGAL_REPORT_0001: LegalDueDiligenceReport = {
   ],
   titleChainStatus: 'Complete',
   titleChainSummary:
-    'The 30-year title search demonstrates an unbroken, clear, and marketable chain of ownership from 1994 to date without any gaps or defective alienations. All instruments have been duly registered with appropriate stamp duty payment in Maharashtra.',
+    'The 30-year title search substantiates an unbroken, clear, and marketable chain of ownership from 1994 to date without any gaps or defective alienations. All instruments have been duly registered with appropriate stamp duty payment in Maharashtra.',
 
   // 6. Ownership Verification
   ownershipVerification: {

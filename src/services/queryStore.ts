@@ -5,7 +5,7 @@ import { apfStore, registerGeofenceAlertDispatcher } from './apfStore';
 
 const STORAGE_KEY_QUERIES = 'PROVAL_APF_QUERIES_V1';
 
-// Pre-seeded realistic banking queries for the demo cases
+// Pre-seeded realistic banking queries for pre-configured cases
 const INITIAL_QUERIES: APFQuery[] = [
   {
     id: 'QRY-2026-0001',
@@ -660,7 +660,7 @@ Workflow progression is halted under high-priority compliance hold until CPA, CO
     return true;
   }
 
-  public resetDemoQueries() {
+  public resetQueryData() {
     this.queries = INITIAL_QUERIES;
     this.saveQueries();
   }

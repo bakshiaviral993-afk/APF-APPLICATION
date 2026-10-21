@@ -3,7 +3,7 @@ import { UserAccount, UserRole } from '../../types/apfTransaction';
 import { apfStore } from '../../services/apfStore';
 import { masterStore } from '../../services/masterStore';
 import { queryStore } from '../../services/queryStore';
-import { DEMO_USERS } from '../../data/centralMasterData';
+import { SYSTEM_USERS } from '../../data/centralMasterData';
 import {
   Menu,
   Building2,
@@ -81,9 +81,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }, [currentUser]);
 
   const handleRoleSwitch = (username: string) => {
-    const targetUser = DEMO_USERS[username];
+    const targetUser = SYSTEM_USERS[username];
     if (targetUser) {
-      apfStore.login(targetUser.username, 'Demo@123');
+      apfStore.login(targetUser.username, 'Secure@123');
       setIsProfileDropdownOpen(false);
     }
   };
@@ -341,7 +341,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                           >
                             <div>
                               <span className="font-medium block text-xs">External Advocate (Adv. Ananya)</span>
-                              <span className="text-[10px] text-slate-500">Demo Legal Associates • Legal Portal</span>
+                              <span className="text-[10px] text-slate-500">Apex Legal Associates • Legal Portal</span>
                             </div>
                             {currentUser.role === 'EXTERNAL_LEGAL_ADVOCATE' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
                           </button>

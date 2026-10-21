@@ -130,7 +130,7 @@ export const ExternalLegalWorkspace: React.FC<ExternalLegalWorkspaceProps> = ({
         {
           name: currentUser.name,
           role: currentUser.roleLabel || 'External Legal Advocate',
-          firm: currentUser.firmName || assignment?.firmName || 'Demo Legal Associates',
+          firm: currentUser.firmName || assignment?.firmName || 'Apex Legal Associates',
           empanelmentNo: currentUser.empanelmentNumber || assignment?.empanelmentNo || 'EMP-LEG-2024-042',
         }
       );

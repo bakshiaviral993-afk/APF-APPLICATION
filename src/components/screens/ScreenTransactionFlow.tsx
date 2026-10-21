@@ -202,7 +202,7 @@ export const ScreenTransactionFlow: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Banner: Scripted Demo Case Indicator */}
+      {/* Top Banner: Benchmark Case Indicator */}
       <div className="bg-white p-5 rounded-xl border border-[#e2e8f0] shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -210,7 +210,7 @@ export const ScreenTransactionFlow: React.FC = () => {
               END-TO-END APF TRANSACTION
             </span>
             <span className="bg-emerald-100 text-emerald-800 text-[11px] font-semibold px-2 py-0.5 rounded">
-              Scripted Demo Case: Kolte-Patil Life Republic
+              Benchmark Case: Kolte-Patil Life Republic
             </span>
             <span className="text-xs font-mono text-[#627d98]">Case ID: APF-PUN-01-2026-0091</span>
           </div>
@@ -1054,7 +1054,7 @@ export const ScreenTransactionFlow: React.FC = () => {
                 <h3 className="text-xs font-bold text-[#0c3148] uppercase tracking-wider flex items-center gap-2">
                   <span>Builder Exposure 360 &amp; Source Provenance</span>
                   <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-mono font-semibold">
-                    [SIMULATED - DEMO DATA]
+                    [SIMULATED - AUDIT DATA]
                   </span>
                 </h3>
                 <span className="text-[11px] text-[#627d98]">Real Entity Identity: {selectedProjectSeed.developer}</span>
@@ -1665,7 +1665,7 @@ export const ScreenTransactionFlow: React.FC = () => {
                     onClick={() => {
                       setCurrentStep('DRAFT');
                       setSimulatedRole('CPA');
-                      addAuditLog('TRANSACTION_RESTART', selectedProjectSeed.project, 'Restarted scripted demo case from Step 1.');
+                      addAuditLog('TRANSACTION_RESTART', selectedProjectSeed.project, 'Restarted benchmark case from Step 1.');
                     }}
                     className="bg-[#0c3148] hover:bg-[#19638c] text-white px-6 py-2.5 rounded-lg text-xs font-bold shadow-sm"
                   >

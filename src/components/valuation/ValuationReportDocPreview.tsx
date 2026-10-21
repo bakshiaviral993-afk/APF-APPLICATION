@@ -739,38 +739,77 @@ export const ValuationReportDocPreview: React.FC<ValuationReportDocPreviewProps>
 
         {/* SECTION 15: PHOTOGRAPHIC ANNEXURE */}
         <div className="space-y-3">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 bg-slate-100 px-3 py-1.5 rounded-lg border-l-4 border-sky-700">
-            15. Photographic Annexure (Geo-Tagged Site Evidence)
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {d.photos?.map((ph) => (
-              <div key={ph.id} className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 space-y-2">
-                <div className="h-44 bg-slate-200 relative flex items-center justify-center text-slate-400">
-                  <Camera className="w-10 h-10 opacity-30" />
-                  <div className="absolute top-2 left-2 bg-slate-900/80 text-white text-[10px] px-2 py-0.5 rounded font-mono">
-                    {ph.category}
-                  </div>
-                  <div className="absolute bottom-2 left-2 right-2 bg-slate-900/85 text-white p-2 rounded-lg text-[9px] font-mono space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>GPS: {ph.lat?.toFixed(5)}, {ph.lng?.toFixed(5)}</span>
-                      <span>±{ph.accuracyMeters}m Accuracy</span>
-                    </div>
-                    <div className="flex justify-between text-slate-300">
-                      <span>Case: {d.caseId}</span>
-                      <span>Time: {ph.timestamp}</span>
-                    </div>
-                    <div className="text-slate-400 text-[8px] truncate">
-                      Device: {ph.deviceSessionId} • Valuer: {ph.capturedBy}
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3 text-xs space-y-1">
-                  <div className="font-bold text-slate-900">{ph.title}</div>
-                  <p className="text-[11px] text-slate-600">{ph.notes}</p>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-between bg-slate-100 px-3 py-1.5 rounded-lg border-l-4 border-sky-700">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+              15. Photographic Annexure (Geo-Tagged Site Evidence)
+            </h3>
+            <span className="text-[10px] font-bold text-slate-600 font-mono">
+              {d.photos?.length || 0} Statutory Photos Attached
+            </span>
           </div>
+
+          {(!d.photos || d.photos.length === 0) ? (
+            <div className="p-6 text-center border border-dashed border-slate-300 rounded-xl bg-slate-50 text-xs text-slate-500">
+              No photographic evidence attached to this report docket.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {d.photos?.map((ph) => (
+                <div key={ph.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs space-y-2">
+                  <div className="h-52 bg-slate-900 relative overflow-hidden flex items-center justify-center text-slate-400">
+                    {ph.photoUrl ? (
+                      <img
+                        src={ph.photoUrl}
+                        alt={ph.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                        <Camera className="w-10 h-10 opacity-30" />
+                        <span className="text-[10px] font-mono">Digital Signature Hash Verified</span>
+                      </div>
+                    )}
+
+                    {/* Top Badges */}
+                    <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
+                      <span className="bg-slate-950/85 text-white text-[10px] px-2 py-0.5 rounded font-mono font-bold border border-white/10">
+                        {ph.category}
+                      </span>
+                      {ph.towerName && (
+                        <span className="bg-sky-950/85 text-sky-200 text-[10px] px-2 py-0.5 rounded font-mono font-bold border border-sky-400/30">
+                          {ph.towerName}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Bottom Forensic Watermark Bar */}
+                    <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-slate-950/90 text-white p-2 rounded-lg text-[9px] font-mono space-y-0.5 border border-slate-800">
+                      <div className="flex justify-between items-center">
+                        <span className="text-emerald-400 font-bold">
+                          GPS: {ph.lat?.toFixed(5)}, {ph.lng?.toFixed(5)} (±{ph.accuracyMeters}m)
+                        </span>
+                        <span className={ph.isInsideGeofence ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                          {ph.isInsideGeofence ? '✓ Geofence Inside' : '⚠ Offsite Deviation'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-slate-300">
+                        <span>Case: {d.caseId}</span>
+                        <span>{ph.timestamp}</span>
+                      </div>
+                      <div className="text-slate-400 text-[8px] truncate">
+                        Evidence ID: {ph.evidenceId || ph.id} • Valuer: {ph.capturedBy}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 text-xs space-y-1">
+                    <div className="font-bold text-slate-900">{ph.title}</div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">{ph.notes || 'Observation verified during on-site technical inspection.'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* FOOTER */}

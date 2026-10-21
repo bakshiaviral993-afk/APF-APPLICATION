@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuditLog }) => {
 
   // 25 Specific Required Connected Screens mapped to ScreenId / routes
   const screenOptions: { id: ScreenId | string; label: string; stage?: string }[] = [
-    { id: 'flow', label: '★ 16-Stage Transaction Journey (Interactive)', stage: 'Primary Demo' },
+    { id: 'flow', label: '★ 16-Stage Transaction Journey (Interactive)', stage: 'Primary Walkthrough' },
     { id: '01', label: '02. Executive APF Control Tower', stage: 'Overview' },
     { id: '02', label: '03. APF Case Search / Master List', stage: 'Initiation' },
     { id: '11', label: '04. New APF Initiation Docket', stage: 'Initiation' },
@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuditLog }) => {
             }`}
           >
             <Workflow className="w-3.5 h-3.5" />
-            <span>End-to-End Transaction Demo</span>
+            <span>End-to-End Transaction Journey</span>
             <span className="bg-emerald-400 text-[#0c3148] text-[9px] px-1 py-0.2 rounded font-black uppercase">
               16 Steps
             </span>

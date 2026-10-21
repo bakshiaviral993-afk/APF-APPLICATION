@@ -1,37 +1,37 @@
-// Bank-Grade Demo Exposure Service
+// Bank-Grade Builder Exposure Service
 // Supports all 10 Builders (5 Pune, 5 Mumbai)
 // Manages simulated fetch, reconciliation, and immutable Exposure Snapshots
 
 import {
   BuilderExposureResponse,
   BuilderExposureSummary,
-  DemoLenderFacility,
-  DemoProjectExposure,
-  DemoGroupEntity,
-  DemoSourceFetchStatus,
-  DemoReconciliationItem,
+  ExposureLenderFacility,
+  ExposureProjectDetail,
+  ExposureGroupEntity,
+  ExposureSourceFetchStatus,
+  ExposureReconciliationItem,
   ExposureSnapshot,
   ExposureService,
-  DemoReconciliationStatus,
+  ExposureReconciliationStatus,
   ExposureRiskBand,
-} from '../types/demoExposureTypes';
+} from '../types/builderExposureTypes';
 import {
-  DEMO_EXPOSURE_SUMMARIES,
-  DEMO_LENDER_FACILITIES,
-  DEMO_PROJECT_EXPOSURES,
-  DEMO_GROUP_ENTITIES,
-  DEMO_SOURCE_FETCH_STATUSES,
-  DEMO_RECONCILIATION_ITEMS,
-} from '../data/demoExposureDataset';
+  EXPOSURE_SUMMARIES,
+  LENDER_FACILITIES,
+  PROJECT_EXPOSURES,
+  GROUP_ENTITIES,
+  SOURCE_FETCH_STATUSES,
+  RECONCILIATION_ITEMS,
+} from '../data/builderExposureDataset';
 import { masterStore } from './masterStore';
 
 const STORAGE_KEY_EXPOSURE_SNAPSHOTS = 'PROVAL_APF_EXPOSURE_SNAPSHOTS_V1';
 const STORAGE_KEY_EXPOSURE_RECONCILIATION = 'PROVAL_APF_EXPOSURE_RECON_V1';
 const STORAGE_KEY_BUILDER_FETCH_TIMESTAMPS = 'PROVAL_APF_BUILDER_FETCH_TIMESTAMPS_V1';
 
-class DemoExposureServiceImpl implements ExposureService {
+class ExposureServiceImpl implements ExposureService {
   private snapshots: ExposureSnapshot[] = [];
-  private reconciliationOverrides: Record<string, DemoReconciliationItem> = {};
+  private reconciliationOverrides: Record<string, ExposureReconciliationItem> = {};
   private fetchTimestamps: Record<string, string> = {};
 
   constructor() {
@@ -93,8 +93,8 @@ class DemoExposureServiceImpl implements ExposureService {
 
   public getBuilderSummary(builderId: string): BuilderExposureSummary {
     const lastFetch = this.fetchTimestamps[builderId];
-    if (DEMO_EXPOSURE_SUMMARIES[builderId]) {
-      const summary = DEMO_EXPOSURE_SUMMARIES[builderId];
+    if (EXPOSURE_SUMMARIES[builderId]) {
+      const summary = EXPOSURE_SUMMARIES[builderId];
       return {
         ...summary,
         lastRefresh: lastFetch || summary.lastRefresh || '2026-09-21',
@@ -145,7 +145,7 @@ class DemoExposureServiceImpl implements ExposureService {
       };
     }
 
-    const fallback = DEMO_EXPOSURE_SUMMARIES['BLD-PUN-001'];
+    const fallback = EXPOSURE_SUMMARIES['BLD-PUN-001'];
     return {
       ...fallback,
       lastRefresh: lastFetch || fallback.lastRefresh || '2026-09-21',
@@ -154,7 +154,7 @@ class DemoExposureServiceImpl implements ExposureService {
 
   public getAllSummaries(): Record<string, BuilderExposureSummary> {
     const result: Record<string, BuilderExposureSummary> = {};
-    for (const id in DEMO_EXPOSURE_SUMMARIES) {
+    for (const id in EXPOSURE_SUMMARIES) {
       result[id] = this.getBuilderSummary(id);
     }
     const storeBuilders = masterStore.getBuilders();
@@ -166,8 +166,8 @@ class DemoExposureServiceImpl implements ExposureService {
     return result;
   }
 
-  public async getLenderExposure(builderId: string): Promise<DemoLenderFacility[]> {
-    const facilities = DEMO_LENDER_FACILITIES.filter((f) => f.builderId === builderId);
+  public async getLenderExposure(builderId: string): Promise<ExposureLenderFacility[]> {
+    const facilities = LENDER_FACILITIES.filter((f) => f.builderId === builderId);
     if (facilities.length > 0) return facilities;
 
     const b = masterStore.getBuilderById(builderId);
@@ -250,11 +250,11 @@ class DemoExposureServiceImpl implements ExposureService {
     }
 
     // Fallback to first builder if requested builder not found
-    return DEMO_LENDER_FACILITIES.filter((f) => f.builderId === 'BLD-PUN-001');
+    return LENDER_FACILITIES.filter((f) => f.builderId === 'BLD-PUN-001');
   }
 
-  public async getProjectExposure(builderId: string): Promise<DemoProjectExposure[]> {
-    const projects = DEMO_PROJECT_EXPOSURES.filter((p) => p.builderId === builderId);
+  public async getProjectExposure(builderId: string): Promise<ExposureProjectDetail[]> {
+    const projects = PROJECT_EXPOSURES.filter((p) => p.builderId === builderId);
     if (projects.length > 0) return projects;
 
     const b = masterStore.getBuilderById(builderId);
@@ -308,11 +308,11 @@ class DemoExposureServiceImpl implements ExposureService {
       ];
     }
 
-    return DEMO_PROJECT_EXPOSURES.filter((p) => p.builderId === 'BLD-PUN-001');
+    return PROJECT_EXPOSURES.filter((p) => p.builderId === 'BLD-PUN-001');
   }
 
-  public async getGroupExposure(builderId: string): Promise<DemoGroupEntity[]> {
-    const entities = DEMO_GROUP_ENTITIES.filter((g) => g.builderId === builderId);
+  public async getGroupExposure(builderId: string): Promise<ExposureGroupEntity[]> {
+    const entities = GROUP_ENTITIES.filter((g) => g.builderId === builderId);
     if (entities.length > 0) return entities;
 
     const b = masterStore.getBuilderById(builderId);
@@ -349,11 +349,11 @@ class DemoExposureServiceImpl implements ExposureService {
       ];
     }
 
-    return DEMO_GROUP_ENTITIES.filter((g) => g.builderId === 'BLD-PUN-001');
+    return GROUP_ENTITIES.filter((g) => g.builderId === 'BLD-PUN-001');
   }
 
-  public async getReconciliation(builderId: string): Promise<DemoReconciliationItem[]> {
-    const baseItems = DEMO_RECONCILIATION_ITEMS.filter((r) => r.builderId === builderId);
+  public async getReconciliation(builderId: string): Promise<ExposureReconciliationItem[]> {
+    const baseItems = RECONCILIATION_ITEMS.filter((r) => r.builderId === builderId);
     let items = baseItems;
 
     if (items.length === 0) {
@@ -418,7 +418,7 @@ class DemoExposureServiceImpl implements ExposureService {
           },
         ];
       } else {
-        items = DEMO_RECONCILIATION_ITEMS.filter((r) => r.builderId === 'BLD-PUN-001');
+        items = RECONCILIATION_ITEMS.filter((r) => r.builderId === 'BLD-PUN-001');
       }
     }
 
@@ -431,9 +431,9 @@ class DemoExposureServiceImpl implements ExposureService {
     });
   }
 
-  public async getSourceFetchStatuses(builderId: string): Promise<DemoSourceFetchStatus[]> {
+  public async getSourceFetchStatuses(builderId: string): Promise<ExposureSourceFetchStatus[]> {
     const lastFetch = this.fetchTimestamps[builderId] || '2026-09-21 14:15 IST';
-    const list = DEMO_SOURCE_FETCH_STATUSES[builderId] || DEMO_SOURCE_FETCH_STATUSES.DEFAULT;
+    const list = SOURCE_FETCH_STATUSES[builderId] || SOURCE_FETCH_STATUSES.DEFAULT;
     return list.map((s) => ({
       ...s,
       lastFetchTime: lastFetch,
@@ -453,7 +453,7 @@ class DemoExposureServiceImpl implements ExposureService {
     this.saveFetchTimestamps();
 
     return {
-      mode: 'DEMO',
+      mode: 'LIVE',
       label: 'SIMULATED POC DATA',
       builderId,
       builderName: summary.builderName,
@@ -487,7 +487,7 @@ class DemoExposureServiceImpl implements ExposureService {
     actorName: string = 'System (CPA Engine)'
   ): ExposureSnapshot {
     const summary = this.getBuilderSummary(builderId);
-    const reconItems = DEMO_RECONCILIATION_ITEMS.filter((r) => r.builderId === builderId);
+    const reconItems = RECONCILIATION_ITEMS.filter((r) => r.builderId === builderId);
     const exceptionCount = reconItems.filter((r) => r.status === 'REVIEW REQUIRED' || r.status === 'CONFLICT').length;
 
     const seq = (this.snapshots.filter((s) => s.builderId === builderId).length + 1)
@@ -530,14 +530,14 @@ class DemoExposureServiceImpl implements ExposureService {
 
   public updateReconciliationItem(
     reconId: string,
-    newStatus: DemoReconciliationStatus,
+    newStatus: ExposureReconciliationStatus,
     notes: string,
     reviewerName: string = 'Credit Processing Associate (CPA)'
-  ): DemoReconciliationItem | undefined {
-    const original = DEMO_RECONCILIATION_ITEMS.find((r) => r.id === reconId);
+  ): ExposureReconciliationItem | undefined {
+    const original = RECONCILIATION_ITEMS.find((r) => r.id === reconId);
     if (!original) return undefined;
 
-    const updated: DemoReconciliationItem = {
+    const updated: ExposureReconciliationItem = {
       ...original,
       status: newStatus,
       reviewerNotes: notes,
@@ -555,4 +555,5 @@ class DemoExposureServiceImpl implements ExposureService {
   }
 }
 
-export const demoExposureService = new DemoExposureServiceImpl();
+export const exposureReconciliationService = new ExposureServiceImpl();
+export const builderExposureService = exposureReconciliationService;

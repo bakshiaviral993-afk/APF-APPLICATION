@@ -15,8 +15,8 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-import { demoExposureService } from '../../services/demoExposureService';
-import { BuilderExposureResponse, ExposureSnapshot } from '../../types/demoExposureTypes';
+import { exposureReconciliationService } from '../../services/builderExposureService';
+import { BuilderExposureResponse, ExposureSnapshot } from '../../types/builderExposureTypes';
 
 interface FetchExposureDrawerProps {
   isOpen: boolean;
@@ -40,7 +40,7 @@ type FetchStage =
 interface SourceItemProgress {
   name: string;
   category: string;
-  status: 'PENDING' | 'LOADING' | 'FETCHED' | 'DEMO CONNECTED';
+  status: 'PENDING' | 'LOADING' | 'FETCHED' | 'CONNECTED';
   detail: string;
 }
 
@@ -115,7 +115,7 @@ export const FetchExposureDrawer: React.FC<FetchExposureDrawerProps> = ({
           i < 4
             ? { ...s, status: 'FETCHED' }
             : i < 7
-            ? { ...s, status: 'DEMO CONNECTED' }
+            ? { ...s, status: 'CONNECTED' }
             : i === 7
             ? { ...s, status: 'LOADING' }
             : s
@@ -130,7 +130,7 @@ export const FetchExposureDrawer: React.FC<FetchExposureDrawerProps> = ({
         prev.map((s) => ({
           ...s,
           status: s.name.includes('CIC') || s.name.includes('CRILC') || s.name.includes('CERSAI') || s.name.includes('Internal') || s.name.includes('LOS')
-            ? 'DEMO CONNECTED'
+            ? 'CONNECTED'
             : 'FETCHED',
         }))
       );
@@ -145,8 +145,8 @@ export const FetchExposureDrawer: React.FC<FetchExposureDrawerProps> = ({
       setCurrentStage('READY');
       setProgressPct(95);
 
-      const resp = await demoExposureService.fetchBuilderExposure(builderId);
-      const snapshot = demoExposureService.createOrFreezeSnapshot(
+      const resp = await exposureReconciliationService.fetchBuilderExposure(builderId);
+      const snapshot = exposureReconciliationService.createOrFreezeSnapshot(
         builderId,
         caseId,
         'Credit Processing Associate (CPA Engine)'
@@ -195,7 +195,7 @@ export const FetchExposureDrawer: React.FC<FetchExposureDrawerProps> = ({
                 PROVAL EXPOSURE 360 ENGINE
               </span>
               <span className="text-[10px] font-mono text-amber-400 bg-amber-950/70 px-2 py-0.5 rounded border border-amber-800/60">
-                POC DEMO MODE
+                EXPOSURE BENCHMARK MODE
               </span>
             </div>
             <h2 className="text-xl font-bold mt-1 text-white flex items-center gap-2">
@@ -220,7 +220,7 @@ export const FetchExposureDrawer: React.FC<FetchExposureDrawerProps> = ({
           <div className="flex items-center gap-2 text-xs font-semibold text-amber-900">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              <strong>POC DEMO MODE:</strong> All exposure values, balances, and charges are SIMULATED POC DATA for bank workflow demonstration.
+              <strong>EXPOSURE BENCHMARK MODE:</strong> All exposure values, balances, and charges are BENCHMARK DATA for bank workflow validation.
             </span>
           </div>
           <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
@@ -297,9 +297,9 @@ export const FetchExposureDrawer: React.FC<FetchExposureDrawerProps> = ({
                         <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Fetched
                       </span>
                     )}
-                    {src.status === 'DEMO CONNECTED' && (
+                    {src.status === 'CONNECTED' && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3 text-indigo-600" /> Demo Connected
+                        <ShieldCheck className="w-3 h-3 text-indigo-600" /> Connected
                       </span>
                     )}
                   </div>

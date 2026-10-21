@@ -69,8 +69,8 @@ export const INITIAL_VENDOR_PROFILES: VendorBillingProfile[] = [
   {
     id: 'VND-VAL-002',
     vendorType: 'EXTERNAL_VALUER',
-    legalName: 'Demo Valuation Services Private Limited',
-    tradeName: 'Demo Technical Appraisal Cell',
+    legalName: 'Apex Valuation Services Private Limited',
+    tradeName: 'Apex Technical Appraisal Cell',
     pan: 'AABCD8821K',
     gstin: '27AABCD8821K1Z5',
     cin: 'U74999PN2020PTC192084',
@@ -82,7 +82,7 @@ export const INITIAL_VENDOR_PROFILES: VendorBillingProfile[] = [
     stateCode: '27',
     pin: '411045',
     bankAccount: {
-      accountHolder: 'Demo Valuation Services Pvt Ltd',
+      accountHolder: 'Apex Valuation Services Pvt Ltd',
       bankName: 'ICICI Bank Ltd',
       branch: 'Baner Branch, Pune',
       accountNo: '003905018274',
@@ -149,8 +149,8 @@ export const INITIAL_VENDOR_PROFILES: VendorBillingProfile[] = [
   {
     id: 'VND-LEGAL-001',
     vendorType: 'EXTERNAL_ADVOCATE',
-    legalName: 'Demo Legal Associates LLP',
-    tradeName: 'Demo Legal Associates • Title Scrutiny & Real Estate Practice',
+    legalName: 'Apex Legal Associates LLP',
+    tradeName: 'Apex Legal Associates • Title Scrutiny & Real Estate Practice',
     pan: 'AAEFD7712P',
     gstin: '27AAEFD7712P1ZR',
     cin: 'AAI-8821',
@@ -162,7 +162,7 @@ export const INITIAL_VENDOR_PROFILES: VendorBillingProfile[] = [
     stateCode: '27',
     pin: '411005',
     bankAccount: {
-      accountHolder: 'Demo Legal Associates LLP',
+      accountHolder: 'Apex Legal Associates LLP',
       bankName: 'State Bank of India',
       branch: 'Shivaji Nagar, Pune',
       accountNo: '38192847192',
@@ -190,8 +190,8 @@ export const INITIAL_VENDOR_PROFILES: VendorBillingProfile[] = [
   {
     id: 'VND-LEG-002',
     vendorType: 'EXTERNAL_ADVOCATE',
-    legalName: 'Demo Legal Associates LLP',
-    tradeName: 'Demo Title Search & Conveyancing Firm',
+    legalName: 'Apex Legal Associates LLP',
+    tradeName: 'Apex Title Search & Conveyancing Firm',
     pan: 'AAEFD7712P',
     gstin: '27AAEFD7712P1ZR',
     cin: 'AAI-8821',
@@ -203,7 +203,7 @@ export const INITIAL_VENDOR_PROFILES: VendorBillingProfile[] = [
     stateCode: '27',
     pin: '411005',
     bankAccount: {
-      accountHolder: 'Demo Legal Associates LLP',
+      accountHolder: 'Apex Legal Associates LLP',
       bankName: 'State Bank of India',
       branch: 'Shivaji Nagar, Pune',
       accountNo: '38192847192',
@@ -348,7 +348,7 @@ export const INITIAL_RATE_CARDS: RateCardMaster[] = [
   },
 ];
 
-// Seeded Sample Bills for Demonstration
+// Seeded Sample Bills for System Verification
 export const INITIAL_BILLS: BillMaster[] = [
   {
     id: 'BIL-2026-0001',
@@ -620,7 +620,7 @@ export const INITIAL_BILLS: BillMaster[] = [
     towerNames: ['Building A1', 'Building A2'],
     assignmentId: 'ASN-VAL-2026-002',
     vendorId: 'VND-VAL-002',
-    vendorName: 'Demo Valuation Services Private Limited',
+    vendorName: 'Apex Valuation Services Private Limited',
     vendorType: 'EXTERNAL_VALUER',
     serviceType: 'APF Initial Technical + Valuation',
     rateCardId: 'RC-VAL-001',
@@ -700,7 +700,7 @@ export const INITIAL_BILLS: BillMaster[] = [
     towerNames: ['Building A1', 'Building A2'],
     assignmentId: 'ASN-LEG-2026-002',
     vendorId: 'VND-LEG-002',
-    vendorName: 'Demo Legal Associates LLP',
+    vendorName: 'Apex Legal Associates LLP',
     vendorType: 'EXTERNAL_ADVOCATE',
     serviceType: 'Full APF Legal Due Diligence',
     rateCardId: 'RC-LEG-001',
@@ -750,7 +750,7 @@ export const INITIAL_BILLS: BillMaster[] = [
       invoiceAmount: 35000,
       taxAmount: 6300,
       grossAmount: 41300,
-      invoiceDocName: 'Demo_Legal_Invoice_042.pdf',
+      invoiceDocName: 'Apex_Legal_Invoice_042.pdf',
       uploadedAt: '2026-09-22 18:00:00',
       uploadedBy: 'Adv. Nitin Patil',
       varianceAmount: 0,
@@ -845,7 +845,7 @@ export const INITIAL_BILLING_EVENTS: BillingEvent[] = [
     towerIds: ['TOW-005', 'TOW-006'],
     assignmentId: 'ASN-VAL-2026-002',
     vendorId: 'VND-VAL-002',
-    vendorName: 'Demo Valuation Services Private Limited',
+    vendorName: 'Apex Valuation Services Private Limited',
     vendorType: 'EXTERNAL_VALUER',
     serviceType: 'APF Initial Technical + Valuation',
     serviceSubType: '2 Residential Towers (Buildings A1 & A2)',
@@ -868,7 +868,7 @@ export const INITIAL_BILLING_EVENTS: BillingEvent[] = [
     towerIds: ['TOW-005', 'TOW-006'],
     assignmentId: 'ASN-LEG-2026-002',
     vendorId: 'VND-LEG-002',
-    vendorName: 'Demo Legal Associates LLP',
+    vendorName: 'Apex Legal Associates LLP',
     vendorType: 'EXTERNAL_ADVOCATE',
     serviceType: 'Full APF Legal Due Diligence',
     serviceSubType: 'Title Clearance & Encumbrance Certificate',
@@ -2301,7 +2301,7 @@ class BillingStore {
     return { erpDocNo, voucherNo };
   }
 
-  // Fail Finance ERP (for simulation & error queue demonstration)
+  // Fail Finance ERP (for simulation & error queue verification)
   failFinanceERP(billId: string, user: string, errorCode: string = 'SAP-ERR-GL-LOCKED', errorMessage: string = 'General Ledger account temporarily locked during month-end closing'): void {
     const bill = this.bills.find((b) => b.id === billId);
     if (!bill) throw new Error(`Bill ${billId} not found`);
@@ -2440,8 +2440,8 @@ class BillingStore {
     this.notify();
   }
 
-  // Reset to initial demo state
-  resetDemoData() {
+  // Reset to initial state
+  resetBillingData() {
     this.vendorProfiles = [...INITIAL_VENDOR_PROFILES];
     this.rateCards = [...INITIAL_RATE_CARDS];
     this.billingEvents = [...INITIAL_BILLING_EVENTS];

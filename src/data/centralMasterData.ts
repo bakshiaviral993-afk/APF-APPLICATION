@@ -8,12 +8,12 @@ import {
   UserAccount,
 } from '../types/apfTransaction';
 
-// 1. Authorized Demo Users with Bank Credentials
-export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> = {
+// 1. Authorized System Users with Bank Credentials
+export const SYSTEM_USERS: Record<string, UserAccount & { passwordHash: string }> = {
   cpa01: {
     id: 'USR-CPA-001',
     username: 'cpa01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Rohan Deshmukh',
     role: 'CPA',
     roleLabel: 'Credit Processing Associate (CPA)',
@@ -24,7 +24,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   'valuer.int01': {
     id: 'USR-VAL-INT-001',
     username: 'valuer.int01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Ar. Rajesh Deshpande',
     role: 'INTERNAL_VALUER',
     roleLabel: 'Senior Technical Valuer (Internal)',
@@ -35,7 +35,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   'valuer.ext01': {
     id: 'USR-VAL-EXT-001',
     username: 'valuer.ext01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'M. K. Kulkarni (Empanelled Valuer)',
     role: 'EXTERNAL_VALUER',
     roleLabel: 'Empanelled Panel Valuer (External)',
@@ -46,7 +46,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   com01: {
     id: 'USR-COM-001',
     username: 'com01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Amitav Sen',
     role: 'COM',
     roleLabel: 'Credit Operations Manager (COM)',
@@ -57,7 +57,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   acom01: {
     id: 'USR-ACOM-001',
     username: 'acom01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Priya Sharma',
     role: 'ACOM',
     roleLabel: 'Area Credit Operations Manager (ACOM)',
@@ -68,7 +68,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   rcom01: {
     id: 'USR-RCOM-001',
     username: 'rcom01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Rajiv Mathur',
     role: 'RCOM',
     roleLabel: 'Regional Credit Operations Manager (RCOM)',
@@ -79,7 +79,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   zcom01: {
     id: 'USR-ZCOM-001',
     username: 'zcom01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Vikram Malhotra',
     role: 'ZCOM',
     roleLabel: 'Zonal Credit Operations Manager (ZCOM)',
@@ -90,7 +90,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   ncom01: {
     id: 'USR-NCOM-001',
     username: 'ncom01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Sanjiv Srivastava',
     role: 'NCOM',
     roleLabel: 'National Credit Operations Manager (NCOM)',
@@ -101,7 +101,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   approver01: {
     id: 'USR-APP-001',
     username: 'approver01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Priya Sharma',
     role: 'APPROVER',
     roleLabel: 'Zonal Approving Manager',
@@ -112,7 +112,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   committee01: {
     id: 'USR-COM-002',
     username: 'committee01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Vikram Malhotra',
     role: 'COMMITTEE',
     roleLabel: 'Zonal Credit Committee Member',
@@ -123,7 +123,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   legal01: {
     id: 'USR-LEG-001',
     username: 'legal01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Adv. Suresh Shah',
     role: 'EXTERNAL_LEGAL_ADVOCATE',
     roleLabel: 'Empanelled Legal Counsel & Advocate',
@@ -139,55 +139,55 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   'legal.ext01': {
     id: 'USR-LEG-EXT-001',
     username: 'legal.ext01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Adv. Ananya Deshmukh',
     role: 'EXTERNAL_LEGAL_ADVOCATE',
     roleLabel: 'External Legal Advocate',
-    agencyOrDept: 'Demo Legal Associates',
-    firmName: 'Demo Legal Associates',
+    agencyOrDept: 'Apex Legal Associates',
+    firmName: 'Apex Legal Associates',
     vendorId: 'VND-LEGAL-001',
     empanelmentNumber: 'EMP-LEG-2024-042',
     empanelmentStatus: 'ACTIVE',
     barCouncilNumber: 'MAH/4921/2012',
-    email: 'ananya.deshmukh@demolegal.in',
+    email: 'ananya.deshmukh@apexlegal.in',
     avatarInitials: 'AD',
   },
   'legalfirm.admin01': {
     id: 'USR-LEG-ADM-001',
     username: 'legalfirm.admin01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Adv. Sanjay Trivedi (Managing Partner)',
     role: 'EXTERNAL_LEGAL_FIRM_ADMIN',
     roleLabel: 'External Legal Firm Admin',
-    agencyOrDept: 'Demo Legal Associates',
-    firmName: 'Demo Legal Associates',
+    agencyOrDept: 'Apex Legal Associates',
+    firmName: 'Apex Legal Associates',
     vendorId: 'VND-LEGAL-001',
     empanelmentNumber: 'EMP-LEG-2024-042',
     empanelmentStatus: 'ACTIVE',
     barCouncilNumber: 'MAH/1820/2005',
-    email: 'sanjay.trivedi@demolegal.in',
+    email: 'sanjay.trivedi@apexlegal.in',
     avatarInitials: 'ST',
   },
   'legalfirm.user01': {
     id: 'USR-LEG-USR-002',
     username: 'legalfirm.user01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Adv. Siddharth Kulkarni',
     role: 'EXTERNAL_LEGAL_FIRM_USER',
     roleLabel: 'External Legal Firm Associate',
-    agencyOrDept: 'Demo Legal Associates',
-    firmName: 'Demo Legal Associates',
+    agencyOrDept: 'Apex Legal Associates',
+    firmName: 'Apex Legal Associates',
     vendorId: 'VND-LEGAL-001',
     empanelmentNumber: 'EMP-LEG-2024-042',
     empanelmentStatus: 'ACTIVE',
     barCouncilNumber: 'MAH/7391/2018',
-    email: 'siddharth.kulkarni@demolegal.in',
+    email: 'siddharth.kulkarni@apexlegal.in',
     avatarInitials: 'SK',
   },
   'legal.int01': {
     id: 'USR-LEG-INT-001',
     username: 'legal.int01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Adv. Meenakshi Sundaram',
     role: 'INTERNAL_LEGAL',
     roleLabel: 'Internal Bank Legal Counsel',
@@ -198,7 +198,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   'billing.maker01': {
     id: 'USR-BIL-MAK-001',
     username: 'billing.maker01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'K. S. Nair',
     role: 'BILLING_MAKER',
     roleLabel: 'Billing Operations Maker',
@@ -209,7 +209,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   'billing.checker01': {
     id: 'USR-BIL-CHK-001',
     username: 'billing.checker01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Sunita Iyer',
     role: 'BILLING_CHECKER',
     roleLabel: 'Billing Operations Checker',
@@ -220,7 +220,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   admin01: {
     id: 'USR-ADM-001',
     username: 'admin01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'Siddharth Rao',
     role: 'ADMIN',
     roleLabel: 'APF System Administrator',
@@ -231,7 +231,7 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
   'valuer.agency01': {
     id: 'USR-VAL-AGY-001',
     username: 'valuer.agency01',
-    passwordHash: 'Demo@123',
+    passwordHash: 'Secure@123',
     name: 'S. K. Singhal (Managing Partner)',
     role: 'EXTERNAL_VALUER',
     roleLabel: 'Valuation Agency Partner (External)',
@@ -243,6 +243,23 @@ export const DEMO_USERS: Record<string, UserAccount & { passwordHash: string }> 
 
 // 2. 10 Real Builders (5 Pune, 5 Mumbai)
 export const CENTRAL_BUILDER_MASTER: BuilderMaster[] = [
+  {
+    id: 'BLD-ADANI-001',
+    legalName: 'Adani Properties Pvt Ltd (Adani Realty)',
+    tradeName: 'Adani Realty',
+    groupName: 'Adani Group',
+    pan: 'AAACA8912P',
+    cin: 'U45200GJ1995PTC025419',
+    gst: '24AAACA8912P1Z2',
+    city: 'Ahmedabad',
+    state: 'Gujarat',
+    country: 'India',
+    establishedYear: 1995,
+    promoters: ['Gautam S. Adani', 'Rajesh S. Adani', 'Karan Adani'],
+    totalProjectsCompleted: 42,
+    totalOngoingProjects: 24,
+    sourceUrl: 'https://www.adanirealty.com',
+  },
   {
     id: 'BLD-PUN-001',
     legalName: 'Kolte-Patil Developers Ltd',
@@ -845,17 +862,29 @@ let dynamicBuilderResolver: ((id: string) => BuilderMaster | undefined) | null =
 let dynamicBuildersResolver: (() => BuilderMaster[]) | null = null;
 let dynamicProjectResolver: ((id: string) => ProjectMaster | undefined) | null = null;
 let dynamicProjectsByBuilderResolver: ((builderId: string) => ProjectMaster[]) | null = null;
+let dynamicPhasesByProjectResolver: ((projectId: string) => PhaseMaster[]) | null = null;
+let dynamicTowersByProjectResolver: ((projectId: string) => TowerMaster[]) | null = null;
+let dynamicTowersByPhaseResolver: ((phaseId: string) => TowerMaster[]) | null = null;
+let dynamicUnitsByTowerResolver: ((towerId: string) => UnitMaster[]) | null = null;
 
 export function registerMasterStoreResolvers(resolvers: {
   getBuilderById: (id: string) => BuilderMaster | undefined;
   getBuilders: () => BuilderMaster[];
   getProjectById: (id: string) => ProjectMaster | undefined;
   getProjectsByBuilder: (builderId: string) => ProjectMaster[];
+  getPhasesByProject?: (projectId: string) => PhaseMaster[];
+  getTowersByProject?: (projectId: string) => TowerMaster[];
+  getTowersByPhase?: (phaseId: string) => TowerMaster[];
+  getUnitsByTower?: (towerId: string) => UnitMaster[];
 }) {
   dynamicBuilderResolver = resolvers.getBuilderById;
   dynamicBuildersResolver = resolvers.getBuilders;
   dynamicProjectResolver = resolvers.getProjectById;
   dynamicProjectsByBuilderResolver = resolvers.getProjectsByBuilder;
+  if (resolvers.getPhasesByProject) dynamicPhasesByProjectResolver = resolvers.getPhasesByProject;
+  if (resolvers.getTowersByProject) dynamicTowersByProjectResolver = resolvers.getTowersByProject;
+  if (resolvers.getTowersByPhase) dynamicTowersByPhaseResolver = resolvers.getTowersByPhase;
+  if (resolvers.getUnitsByTower) dynamicUnitsByTowerResolver = resolvers.getUnitsByTower;
 }
 
 // Relational Access Helpers (Single Source of Truth)
@@ -891,14 +920,26 @@ export function getProjectsByBuilder(builderId: string): ProjectMaster[] {
 }
 
 export function getPhasesByProject(projectId: string): PhaseMaster[] {
+  if (dynamicPhasesByProjectResolver) {
+    const dynamicFound = dynamicPhasesByProjectResolver(projectId);
+    if (dynamicFound && dynamicFound.length > 0) return dynamicFound;
+  }
   return CENTRAL_PHASE_MASTER.filter((ph) => ph.projectId === projectId);
 }
 
 export function getTowersByProject(projectId: string): TowerMaster[] {
+  if (dynamicTowersByProjectResolver) {
+    const dynamicFound = dynamicTowersByProjectResolver(projectId);
+    if (dynamicFound && dynamicFound.length > 0) return dynamicFound;
+  }
   return CENTRAL_TOWER_MASTER.filter((t) => t.projectId === projectId);
 }
 
 export function getTowersByPhase(phaseId: string): TowerMaster[] {
+  if (dynamicTowersByPhaseResolver) {
+    const dynamicFound = dynamicTowersByPhaseResolver(phaseId);
+    if (dynamicFound && dynamicFound.length > 0) return dynamicFound;
+  }
   return CENTRAL_TOWER_MASTER.filter((t) => t.phaseId === phaseId);
 }
 
@@ -907,5 +948,9 @@ export function getTowerById(towerId: string): TowerMaster | undefined {
 }
 
 export function getUnitsByTower(towerId: string): UnitMaster[] {
+  if (dynamicUnitsByTowerResolver) {
+    const dynamicFound = dynamicUnitsByTowerResolver(towerId);
+    if (dynamicFound && dynamicFound.length > 0) return dynamicFound;
+  }
   return CENTRAL_UNIT_MASTER.filter((u) => u.towerId === towerId);
 }

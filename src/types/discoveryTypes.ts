@@ -126,9 +126,11 @@ export interface DiscoveredBuilderData {
 export interface DiscoveredProjectData {
   id: string;
   builderId: string;
+  builderName?: string;
   projectName: string;
   reraNumber: string;
   reraNumbers: string[];
+  reraAuthority?: string;
   promoterName: string;
   address: string;
   locality: string;
@@ -142,16 +144,22 @@ export interface DiscoveredProjectData {
   projectStatus: string;
   projectType: string;
   phaseName: string;
+  phaseCount?: number;
   totalTowers?: number;
   totalUnits?: number;
   constructionDetail?: string;
   source: string;
   sourceUrl?: string;
+  sourceDate?: string;
+  sourcesList?: { sourceName: string; sourceUrl?: string; sourceType?: string }[];
+  verificationStatus?: 'VERIFIED' | 'PROPOSED' | 'UNVERIFIED';
   lastUpdated: string;
   confidence: number;
   selectedForImport: boolean;
   alreadyExists?: boolean;
   existingProjectId?: string;
+  isScopeAllowed?: boolean;
+  scopeRestrictionReason?: string;
 }
 
 export interface DiscoveredTowerData {

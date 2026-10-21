@@ -58,7 +58,7 @@ export const InteractiveSiteMapView: React.FC<InteractiveSiteMapViewProps> = ({
         const map = new mapsLib.Map(mapContainerRef.current, {
           center: { lat: isPinned ? valuerLat : defaultProjectLat, lng: isPinned ? valuerLng : defaultProjectLng },
           zoom: 16,
-          mapId: 'DEMO_MAP_ID',
+          mapId: 'PROVAL_MAP_ID',
           internalUsageAttributionIds: [MANDATORY_ATTRIBUTION_ID],
           mapTypeControl: false,
           streetViewControl: false,

@@ -13,7 +13,7 @@ import {
   Info,
 } from 'lucide-react';
 
-interface DemoUserItem {
+interface UserPersonaItem {
   key: string;
   name: string;
   role: string;
@@ -24,7 +24,7 @@ interface DemoUserItem {
   avatarInitials: string;
 }
 
-export const DEMO_PERSONAS: DemoUserItem[] = [
+export const PORTAL_PERSONAS: UserPersonaItem[] = [
   // Bank Console
   {
     key: 'cpa01',
@@ -145,7 +145,7 @@ export const DEMO_PERSONAS: DemoUserItem[] = [
     name: 'Adv. Ananya Deshmukh',
     role: 'EXTERNAL_LEGAL_ADVOCATE',
     roleTitle: 'Empanelled External Legal Advocate',
-    deptOrAgency: 'Demo Legal Associates • Title Scrutiny Panel',
+    deptOrAgency: 'Apex Legal Associates • Title Scrutiny Panel',
     portal: 'LEGAL',
     description: '12-step legal due diligence, 30-year title flow, search reports, conflict declaration, legal opinion.',
     avatarInitials: 'AD',
@@ -155,7 +155,7 @@ export const DEMO_PERSONAS: DemoUserItem[] = [
     name: 'Adv. Sanjay Trivedi',
     role: 'EXTERNAL_LEGAL_FIRM_ADMIN',
     roleTitle: 'Law Firm Admin (Managing Partner)',
-    deptOrAgency: 'Demo Legal Associates LLP',
+    deptOrAgency: 'Apex Legal Associates LLP',
     portal: 'LEGAL',
     description: 'Law firm case allocation, advocate performance monitoring, empanelment profile, tax invoicing.',
     avatarInitials: 'ST',
@@ -165,21 +165,21 @@ export const DEMO_PERSONAS: DemoUserItem[] = [
     name: 'Adv. Siddharth Kulkarni',
     role: 'EXTERNAL_LEGAL_FIRM_USER',
     roleTitle: 'Associate Legal Counsel',
-    deptOrAgency: 'Demo Legal Associates LLP',
+    deptOrAgency: 'Apex Legal Associates LLP',
     portal: 'LEGAL',
     description: 'Revenue records review, dual review scrutinies, sub-registrar search verification.',
     avatarInitials: 'SK',
   },
 ];
 
-interface DemoCredentialsModalProps {
+interface CredentialsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectPersona: (username: string, portal: 'BANK' | 'VALUER' | 'LEGAL') => void;
   defaultPortal?: 'BANK' | 'VALUER' | 'LEGAL';
 }
 
-export const DemoCredentialsModal: React.FC<DemoCredentialsModalProps> = ({
+export const CredentialsModal: React.FC<CredentialsModalProps> = ({
   isOpen,
   onClose,
   onSelectPersona,
@@ -190,7 +190,7 @@ export const DemoCredentialsModal: React.FC<DemoCredentialsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const filtered = DEMO_PERSONAS.filter((p) => {
+  const filtered = PORTAL_PERSONAS.filter((p) => {
     if (p.portal !== activeTab) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -214,9 +214,9 @@ export const DemoCredentialsModal: React.FC<DemoCredentialsModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-[#172033]">Demo Personas & Credentials</h3>
+                <h3 className="text-sm font-bold text-[#172033]">User Personas & Credentials</h3>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
-                  POC DEMO ACCESS ONLY
+                  PORTAL ACCESS PROFILES
                 </span>
               </div>
               <p className="text-[11px] text-[#667085]">
@@ -246,7 +246,7 @@ export const DemoCredentialsModal: React.FC<DemoCredentialsModalProps> = ({
               <Building2 className="w-3.5 h-3.5 text-sky-600" />
               <span>Bank Console</span>
               <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700">
-                {DEMO_PERSONAS.filter((p) => p.portal === 'BANK').length}
+                {PORTAL_PERSONAS.filter((p) => p.portal === 'BANK').length}
               </span>
             </button>
 
@@ -261,7 +261,7 @@ export const DemoCredentialsModal: React.FC<DemoCredentialsModalProps> = ({
               <Calculator className="w-3.5 h-3.5 text-amber-600" />
               <span>External Valuer</span>
               <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700">
-                {DEMO_PERSONAS.filter((p) => p.portal === 'VALUER').length}
+                {PORTAL_PERSONAS.filter((p) => p.portal === 'VALUER').length}
               </span>
             </button>
 
@@ -276,7 +276,7 @@ export const DemoCredentialsModal: React.FC<DemoCredentialsModalProps> = ({
               <Scale className="w-3.5 h-3.5 text-emerald-600" />
               <span>External Legal</span>
               <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700">
-                {DEMO_PERSONAS.filter((p) => p.portal === 'LEGAL').length}
+                {PORTAL_PERSONAS.filter((p) => p.portal === 'LEGAL').length}
               </span>
             </button>
           </div>
@@ -297,7 +297,7 @@ export const DemoCredentialsModal: React.FC<DemoCredentialsModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-slate-50/50">
           {filtered.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-500">
-              No demo personas match the search filter.
+              No user personas match the search filter.
             </div>
           ) : (
             filtered.map((persona) => (
@@ -352,7 +352,7 @@ export const DemoCredentialsModal: React.FC<DemoCredentialsModalProps> = ({
         <div className="px-5 py-3 border-t border-[#DCE3EB] bg-white flex items-center justify-between text-[11px] text-slate-500 shrink-0">
           <div className="flex items-center gap-1.5">
             <Info className="w-3.5 h-3.5 text-slate-400" />
-            <span>Default demo password for all accounts: <strong>Demo@123</strong></span>
+            <span>Default password for all pre-configured accounts: <strong>Secure@123</strong></span>
           </div>
           <button
             onClick={onClose}

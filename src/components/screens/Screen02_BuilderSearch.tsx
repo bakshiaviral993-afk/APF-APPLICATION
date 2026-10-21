@@ -12,7 +12,7 @@ import {
   Sparkles,
   Layers,
 } from 'lucide-react';
-import { DEMO_COMPANIES, DEMO_BUILDER_GROUP } from '../../data/mockData';
+import { SAMPLE_COMPANIES, SAMPLE_BUILDER_GROUP } from '../../data/mockData';
 
 export const Screen02_BuilderSearch: React.FC = () => {
   const { setCurrentScreen, setSelectedCompany, addAuditLog } = useAPF();
@@ -71,7 +71,7 @@ export const Screen02_BuilderSearch: React.FC = () => {
 
         {/* Quick Search Chips */}
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#627d98]">
-          <span className="font-medium">Quick Demo Entities:</span>
+          <span className="font-medium">Featured National Builders:</span>
           {['ABC Developers Pvt. Ltd.', 'Apex Habitat Private Limited', 'Apex Realty LLP', 'Alpha SPV Pvt Ltd'].map(
             (chip) => (
               <button
@@ -119,7 +119,7 @@ export const Screen02_BuilderSearch: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-[#102a43]">
-              Matching Builder Profiles ({DEMO_COMPANIES.length} Records Found)
+              Matching Builder Profiles ({SAMPLE_COMPANIES.length} Records Found)
             </h2>
             <span className="text-xs text-[#627d98]">
               Matched Group: <strong className="text-[#19638c] font-semibold">ABC Realty Group / Apex Habitat</strong>
@@ -127,7 +127,7 @@ export const Screen02_BuilderSearch: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {DEMO_COMPANIES.map((company) => (
+            {SAMPLE_COMPANIES.map((company) => (
               <div
                 key={company.id}
                 className="p-5 rounded-xl bg-white border border-[#e2e8f0] hover:border-[#19638c] shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group"

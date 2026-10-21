@@ -14,15 +14,15 @@ import {
   EvidenceSnippet,
 } from '../types/apf';
 import {
-  DEMO_BUILDER_GROUP,
-  DEMO_COMPANIES,
-  DEMO_PROJECTS,
-  DEMO_TOWERS,
-  DEMO_UNITS,
-  DEMO_RECONCILED_FACILITIES,
-  DEMO_AI_OBSERVATIONS,
-  DEMO_EWS_EVENTS,
-  DEMO_COMMITTEE_PACK,
+  SAMPLE_BUILDER_GROUP,
+  SAMPLE_COMPANIES,
+  SAMPLE_PROJECTS,
+  SAMPLE_TOWERS,
+  SAMPLE_UNITS,
+  SAMPLE_RECONCILED_FACILITIES,
+  SAMPLE_AI_OBSERVATIONS,
+  SAMPLE_EWS_EVENTS,
+  SAMPLE_COMMITTEE_PACK,
 } from '../data/mockData';
 
 interface AuditLogEntry {
@@ -105,7 +105,7 @@ interface APFContextType {
   setIsAuditLogOpen: (open: boolean) => void;
   addAuditLog: (action: string, target: string, details: string) => void;
 
-  // Guided Demo Tour (1 to 9 steps)
+  // Guided Platform Tour (1 to 9 steps)
   tourStep: number;
   isTourOpen: boolean;
   setIsTourOpen: (open: boolean) => void;
@@ -121,20 +121,20 @@ export const APFProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentRole, setCurrentRole] = useState<UserRole>('Credit');
 
   // Entity hierarchy
-  const [selectedGroup, setSelectedGroup] = useState<BuilderGroup>(DEMO_BUILDER_GROUP);
-  const [selectedCompany, setSelectedCompany] = useState<BuilderCompany>(DEMO_COMPANIES[0]);
-  const [selectedProject, setSelectedProject] = useState<ProjectEntity>(DEMO_PROJECTS[0]);
-  const [selectedTower, setSelectedTower] = useState<TowerItem | null>(DEMO_TOWERS[1]); // Tower B by default
-  const [selectedUnit, setSelectedUnit] = useState<UnitItem | null>(DEMO_UNITS[85]); // Sample unit in Tower B
+  const [selectedGroup, setSelectedGroup] = useState<BuilderGroup>(SAMPLE_BUILDER_GROUP);
+  const [selectedCompany, setSelectedCompany] = useState<BuilderCompany>(SAMPLE_COMPANIES[0]);
+  const [selectedProject, setSelectedProject] = useState<ProjectEntity>(SAMPLE_PROJECTS[0]);
+  const [selectedTower, setSelectedTower] = useState<TowerItem | null>(SAMPLE_TOWERS[1]); // Tower B by default
+  const [selectedUnit, setSelectedUnit] = useState<UnitItem | null>(SAMPLE_UNITS[85]); // Sample unit in Tower B
 
   // Reconciled facilities
-  const [reconciledFacilities, setReconciledFacilities] = useState<ReconciledFacility[]>(DEMO_RECONCILED_FACILITIES);
+  const [reconciledFacilities, setReconciledFacilities] = useState<ReconciledFacility[]>(SAMPLE_RECONCILED_FACILITIES);
 
   // AI observations
-  const [aiObservations, setAIObservations] = useState<AIObservation[]>(DEMO_AI_OBSERVATIONS);
+  const [aiObservations, setAIObservations] = useState<AIObservation[]>(SAMPLE_AI_OBSERVATIONS);
 
   // Committee Pack
-  const [committeePack, setCommitteePack] = useState<CommitteePack>(DEMO_COMMITTEE_PACK);
+  const [committeePack, setCommitteePack] = useState<CommitteePack>(SAMPLE_COMMITTEE_PACK);
   const [committeeDecision, setCommitteeDecision] = useState<{
     decision: string;
     voterName: string;
@@ -150,7 +150,7 @@ export const APFProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   // EWS
-  const [ewsEvents, setEWSEvents] = useState<EWSEvent[]>(DEMO_EWS_EVENTS);
+  const [ewsEvents, setEWSEvents] = useState<EWSEvent[]>(SAMPLE_EWS_EVENTS);
 
   // Active evidence modal
   const [activeEvidence, setActiveEvidence] = useState<EvidenceSnippet | null>(null);
@@ -320,7 +320,7 @@ export const APFProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addAuditLog('EWS_TASK_CREATED', id, `Surveillance action task assigned to ${assignee}`);
   };
 
-  // Demo Tour Step navigation mapped to Section 8 of blueprint
+  // Platform Tour Step navigation mapped to Section 8 of blueprint
   const TOUR_STEP_SCREENS: Record<number, ScreenId> = {
     1: '02', // Search ABC Developers (Apex Habitat)
     2: '03', // Builder 360
@@ -410,22 +410,22 @@ const DEFAULT_APF_FALLBACK_CONTEXT: APFContextType = {
   setCurrentScreen: () => {},
   currentRole: 'Credit',
   setCurrentRole: () => {},
-  selectedGroup: DEMO_BUILDER_GROUP,
+  selectedGroup: SAMPLE_BUILDER_GROUP,
   setSelectedGroup: () => {},
-  selectedCompany: DEMO_COMPANIES[0],
+  selectedCompany: SAMPLE_COMPANIES[0],
   setSelectedCompany: () => {},
-  selectedProject: DEMO_PROJECTS[0],
+  selectedProject: SAMPLE_PROJECTS[0],
   setSelectedProject: () => {},
-  selectedTower: DEMO_TOWERS[1] || null,
+  selectedTower: SAMPLE_TOWERS[1] || null,
   setSelectedTower: () => {},
-  selectedUnit: DEMO_UNITS[0] || null,
+  selectedUnit: SAMPLE_UNITS[0] || null,
   setSelectedUnit: () => {},
-  reconciledFacilities: DEMO_RECONCILED_FACILITIES,
+  reconciledFacilities: SAMPLE_RECONCILED_FACILITIES,
   approveGoldenRecord: () => {},
   overrideReconciliation: () => {},
-  aiObservations: DEMO_AI_OBSERVATIONS,
+  aiObservations: SAMPLE_AI_OBSERVATIONS,
   updateObservationDecision: () => {},
-  committeePack: DEMO_COMMITTEE_PACK,
+  committeePack: SAMPLE_COMMITTEE_PACK,
   committeeDecision: null,
   setCommitteeDecision: () => {},
   recordCommitteeDecision: () => {},

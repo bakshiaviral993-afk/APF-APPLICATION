@@ -13,7 +13,7 @@ import {
   CommitteePack,
 } from '../types/apf';
 
-export const DEMO_BUILDER_GROUP: BuilderGroup = {
+export const SAMPLE_BUILDER_GROUP: BuilderGroup = {
   id: 'GRP-APEX-001',
   name: 'Apex Habitat Group',
   totalGroupExposureCr: 484.5,
@@ -31,7 +31,7 @@ export const DEMO_BUILDER_GROUP: BuilderGroup = {
   establishedYear: 2011,
 };
 
-export const DEMO_COMPANIES: BuilderCompany[] = [
+export const SAMPLE_COMPANIES: BuilderCompany[] = [
   {
     id: 'COMP-01',
     groupId: 'GRP-APEX-001',
@@ -85,7 +85,7 @@ export const DEMO_COMPANIES: BuilderCompany[] = [
   },
 ];
 
-export const DEMO_PROMOTERS: PromoterProfile[] = [
+export const SAMPLE_PROMOTERS: PromoterProfile[] = [
   {
     id: 'PROM-01',
     name: 'Vikramaditya Singhania',
@@ -130,7 +130,7 @@ export const DEMO_PROMOTERS: PromoterProfile[] = [
   },
 ];
 
-export const DEMO_PROJECTS: ProjectEntity[] = [
+export const SAMPLE_PROJECTS: ProjectEntity[] = [
   {
     id: 'PROJ-01',
     apfCode: 'APF-2026-MUM-0842',
@@ -220,7 +220,7 @@ export const DEMO_PROJECTS: ProjectEntity[] = [
   },
 ];
 
-export const DEMO_TOWERS: TowerItem[] = [
+export const SAMPLE_TOWERS: TowerItem[] = [
   {
     id: 'TOW-01',
     projectId: 'PROJ-01',
@@ -322,7 +322,7 @@ export function generate400Units(): UnitItem[] {
 
   let globalIdx = 1;
 
-  DEMO_TOWERS.forEach((tower) => {
+  SAMPLE_TOWERS.forEach((tower) => {
     const unitsPerFloor = Math.ceil(tower.unitsCount / tower.floors);
 
     for (let floor = 1; floor <= tower.floors; floor++) {
@@ -344,7 +344,7 @@ export function generate400Units(): UnitItem[] {
         const hash = (floor * 13 + u * 7 + globalIdx) % 100;
 
         if (tower.id === 'TOW-02' && (floor === 7 || floor === 8 || floor === 9) && u <= 2) {
-          // Controlled delinquency in Tower B for demonstration!
+          // Controlled delinquency in Tower B for risk evaluation!
           status = 'Delinquent';
           dpd = '31-60 DPD';
         } else if (hash < 55) {
@@ -397,9 +397,9 @@ export function generate400Units(): UnitItem[] {
   return units;
 }
 
-export const DEMO_UNITS = generate400Units();
+export const SAMPLE_UNITS = generate400Units();
 
-export const DEMO_EXPOSURE_SOURCES: ExposureSourceItem[] = [
+export const SAMPLE_EXPOSURE_SOURCES: ExposureSourceItem[] = [
   // 1. Borrower Self-Declaration
   {
     id: 'EXP-SRC-01',
@@ -514,7 +514,7 @@ export const DEMO_EXPOSURE_SOURCES: ExposureSourceItem[] = [
   },
 ];
 
-export const DEMO_RECONCILED_FACILITIES: ReconciledFacility[] = [
+export const SAMPLE_RECONCILED_FACILITIES: ReconciledFacility[] = [
   {
     id: 'RECON-01',
     lenderName: 'State Bank of India',
@@ -598,7 +598,7 @@ export const DEMO_RECONCILED_FACILITIES: ReconciledFacility[] = [
   },
 ];
 
-export const DEMO_MCA_CHARGES: MCACharge[] = [
+export const SAMPLE_MCA_CHARGES: MCACharge[] = [
   {
     chargeId: 'CHG-10029341',
     chargeHolder: 'State Bank of India',
@@ -644,7 +644,7 @@ export const DEMO_MCA_CHARGES: MCACharge[] = [
   },
 ];
 
-export const DEMO_AI_OBSERVATIONS: AIObservation[] = [
+export const SAMPLE_AI_OBSERVATIONS: AIObservation[] = [
   {
     id: 'OBS-01',
     agentId: 'Exposure Agent',
@@ -804,7 +804,7 @@ export const DEMO_AI_OBSERVATIONS: AIObservation[] = [
   },
 ];
 
-export const DEMO_EWS_EVENTS: EWSEvent[] = [
+export const SAMPLE_EWS_EVENTS: EWSEvent[] = [
   {
     id: 'EWS-2026-01',
     title: 'Physical Construction Lag Exceeding Policy Threshold (15.6% Slip)',
@@ -861,7 +861,7 @@ export const DEMO_EWS_EVENTS: EWSEvent[] = [
   },
 ];
 
-export const DEMO_COMMITTEE_PACK: CommitteePack = {
+export const SAMPLE_COMMITTEE_PACK: CommitteePack = {
   caseId: 'APF-CASE-2026-0842',
   apfCode: 'APF-2026-MUM-0842',
   builderName: 'Apex Habitat Private Limited',
@@ -938,7 +938,7 @@ export const DEMO_COMMITTEE_PACK: CommitteePack = {
   ],
 };
 
-export interface DemoDocument {
+export interface SampleDocument {
   id: string;
   title: string;
   category: 'Borrower Declaration' | 'Credit Bureau / CRILC' | 'MCA Charge Filing' | 'Site Inspection Report' | 'Title Search Report' | 'Audited Financial Statement' | 'RERA Public Registry';
@@ -948,7 +948,7 @@ export interface DemoDocument {
   extractedFields: Record<string, string>;
 }
 
-export const DEMO_DOCUMENTS: DemoDocument[] = [
+export const SAMPLE_DOCUMENTS: SampleDocument[] = [
   {
     id: 'DOC-01',
     title: '30-Year Title Search Report & Conveyance Deed',

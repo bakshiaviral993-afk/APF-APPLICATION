@@ -184,7 +184,7 @@ export const DiscoverBuilderModal: React.FC<DiscoverBuilderModalProps> = ({
                 Discovery Search Parameters
               </span>
               <div className="flex items-center space-x-1.5 text-xs text-slate-500">
-                <span>Try Demo Entities:</span>
+                <span>Featured National Builders:</span>
                 {[
                   { label: 'Kolte-Patil', q: 'Kolte-Patil Developers Ltd' },
                   { label: 'Godrej Properties', q: 'Godrej Properties Ltd' },

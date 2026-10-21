@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAPF } from '../../context/APFContext';
 import { Sliders, ShieldCheck, AlertTriangle, ArrowRight, DollarSign } from 'lucide-react';
-import { DEMO_BUILDER_GROUP } from '../../data/mockData';
+import { SAMPLE_BUILDER_GROUP } from '../../data/mockData';
 
 export const Screen23_ExposureEngine: React.FC = () => {
   const { setCurrentScreen, selectedGroup, reconciledFacilities } = useAPF();
@@ -9,7 +9,7 @@ export const Screen23_ExposureEngine: React.FC = () => {
 
   const goldenSanction = reconciledFacilities.reduce((sum, f) => sum + f.goldenSanctionCr, 0);
   const currentTotalGroup = 245.0 + 42.0 + 214.2; // ~501.2 Cr
-  const groupLimit = DEMO_BUILDER_GROUP.overallLimitCr || DEMO_BUILDER_GROUP.groupLimitCr || 600.0;
+  const groupLimit = SAMPLE_BUILDER_GROUP.overallLimitCr || SAMPLE_BUILDER_GROUP.groupLimitCr || 600.0;
   const currentUtilPct = Math.round((currentTotalGroup / groupLimit) * 100);
 
   const simulatedTotal = currentTotalGroup + additionalRetailSim;

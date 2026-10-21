@@ -39,6 +39,7 @@ interface ExternalValuerDashboardViewProps {
   currentUser: UserAccount;
   onOpenCase: (caseId: string) => void;
   onOpenSiteVisit?: (caseId: string) => void;
+  onOpenPhotoUpload?: (caseId: string) => void;
   onNavigateToBilling?: () => void;
 }
 
@@ -46,6 +47,7 @@ export const ExternalValuerDashboardView: React.FC<ExternalValuerDashboardViewPr
   currentUser,
   onOpenCase,
   onOpenSiteVisit,
+  onOpenPhotoUpload,
   onNavigateToBilling,
 }) => {
   const [dateRange, setDateRange] = useState<DateRangeOption>('30_DAYS');
@@ -95,6 +97,22 @@ export const ExternalValuerDashboardView: React.FC<ExternalValuerDashboardViewPr
       onAction: () => {
         if (myAssignedCases[0] && onOpenSiteVisit) {
           onOpenSiteVisit(myAssignedCases[0].id);
+        }
+      },
+    },
+    {
+      id: 'EV-P-PHOTO',
+      type: 'APPROVAL_PENDING',
+      title: 'Site Visit Photo Documentation Due',
+      description: 'Upload geotagged photographic evidence of entrance, RERA display, and tower slabs.',
+      severity: 'info',
+      count: siteVisitPendingCount,
+      actionLabel: 'Upload Site Photos',
+      onAction: () => {
+        if (myAssignedCases[0] && onOpenPhotoUpload) {
+          onOpenPhotoUpload(myAssignedCases[0].id);
+        } else if (myAssignedCases[0]) {
+          onOpenCase(myAssignedCases[0].id);
         }
       },
     },

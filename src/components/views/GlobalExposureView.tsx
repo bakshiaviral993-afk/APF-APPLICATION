@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { masterStore } from '../../services/masterStore';
-import { demoExposureService } from '../../services/demoExposureService';
+import { exposureReconciliationService } from '../../services/builderExposureService';
 import { BuilderExposure360Report } from '../exposure/BuilderExposure360Report';
 import { DollarSign, ShieldAlert, BarChart3, TrendingUp, AlertCircle, Building2, Layers, ArrowRight } from 'lucide-react';
 import { UserAccount } from '../../types/apfTransaction';
@@ -53,7 +53,7 @@ export const GlobalExposureView: React.FC<GlobalExposureViewProps> = ({
 
   // Dynamic group caps matching all builders in MasterStore
   const groupCaps = builders.map((b) => {
-    const summary = demoExposureService.getBuilderSummary(b.id);
+    const summary = exposureReconciliationService.getBuilderSummary(b.id);
     return {
       group: b.groupName || `${b.legalName} Group`,
       builderId: b.id,

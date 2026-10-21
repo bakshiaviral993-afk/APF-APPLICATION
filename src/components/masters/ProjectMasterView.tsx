@@ -10,6 +10,7 @@ import { DiscoverProjectsModal } from '../discovery/DiscoverProjectsModal';
 import { DiscoverTowersModal } from '../discovery/DiscoverTowersModal';
 import { RefreshDiffModal } from '../discovery/RefreshDiffModal';
 import { SourceEvidenceDrawer } from '../discovery/SourceEvidenceDrawer';
+import { Project360Modal } from './Project360Modal';
 import { canAccessExposureReport } from '../../utils/exposurePermissions';
 import {
   MapPin,
@@ -28,6 +29,7 @@ import {
   RefreshCw,
   BarChart3,
   Building,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface ProjectMasterViewProps {
@@ -51,6 +53,8 @@ export const ProjectMasterView: React.FC<ProjectMasterViewProps> = ({
   const [builderFilter, setBuilderFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [sortBy, setSortBy] = useState<'NAME' | 'TOWERS' | 'PROGRESS' | 'UNITS'>('NAME');
+
+  const [projectFor360, setProjectFor360] = useState<ProjectMaster | null>(null);
 
   // Modals
   const [isStepperOpen, setIsStepperOpen] = useState(false);
@@ -475,6 +479,30 @@ export const ProjectMasterView: React.FC<ProjectMasterViewProps> = ({
                       {/* Actions */}
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                          {/* PROJECT 360 DOSSIER */}
+                          <button
+                            type="button"
+                            onClick={() => setProjectFor360(p)}
+                            title="View Project 360 Dossier & Child Hierarchy"
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-800 hover:bg-slate-200 text-[11px] font-bold transition-colors flex items-center gap-1 border border-slate-300"
+                          >
+                            <Building className="w-3 h-3 text-slate-600" />
+                            <span>Project 360</span>
+                          </button>
+
+                          {/* INITIATE APF FOR THIS PROJECT */}
+                          {onStartApfTransaction && (
+                            <button
+                              type="button"
+                              onClick={() => onStartApfTransaction(p.builderId, p.id)}
+                              title="Initiate New APF Case for this Project"
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-[11px] font-bold transition-colors flex items-center gap-1 border border-emerald-200"
+                            >
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Initiate APF</span>
+                            </button>
+                          )}
+
                           {/* FETCH TOWERS (RERA) */}
                           <button
                             type="button"
@@ -772,6 +800,21 @@ export const ProjectMasterView: React.FC<ProjectMasterViewProps> = ({
             setIsRefreshDiffOpen(false);
             setTargetEntityForRefresh(null);
             loadData();
+          }}
+        />
+      )}
+
+      {/* PROJECT 360 DOSSIER MODAL */}
+      {projectFor360 && currentUser && (
+        <Project360Modal
+          isOpen={!!projectFor360}
+          onClose={() => setProjectFor360(null)}
+          project={projectFor360}
+          currentUser={currentUser}
+          onStartApf={onStartApfTransaction}
+          onFetchTowers={(proj) => {
+            setTargetProjectForTowers(proj);
+            setIsDiscoverTowersOpen(true);
           }}
         />
       )}

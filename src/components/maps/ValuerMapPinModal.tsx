@@ -16,11 +16,13 @@ import {
   OctagonAlert,
   BellRing,
   RefreshCw,
+  Camera,
 } from 'lucide-react';
 import { loadGoogleMaps, MANDATORY_ATTRIBUTION_ID, GOOGLE_MAPS_API_KEY } from '../../services/googleMapsLoader';
 import { apfStore } from '../../services/apfStore';
 import { APFCase, ProjectMaster } from '../../types/apfTransaction';
 import { CENTRAL_PROJECT_MASTER } from '../../data/centralMasterData';
+import { SiteVisitPhotoUploadModal } from '../valuation/SiteVisitPhotoUploadModal';
 
 interface ValuerMapPinModalProps {
   isOpen: boolean;
@@ -76,6 +78,7 @@ export const ValuerMapPinModal: React.FC<ValuerMapPinModalProps> = ({
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [showPhotoModal, setShowPhotoModal] = useState<boolean>(false);
 
   // Security Incident / Breach Rejection Alert Modal
   const [breachAlertModal, setBreachAlertModal] = useState<{
@@ -144,7 +147,7 @@ export const ValuerMapPinModal: React.FC<ValuerMapPinModalProps> = ({
         const map = new mapsLib.Map(mapContainerRef.current, {
           center: { lat: currentLat, lng: currentLng },
           zoom: 17,
-          mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
+          mapId: 'PROVAL_MAP_ID', // Required for AdvancedMarkerElement
           internalUsageAttributionIds: [MANDATORY_ATTRIBUTION_ID],
           mapTypeControl: false,
           streetViewControl: false,
@@ -736,6 +739,14 @@ export const ValuerMapPinModal: React.FC<ValuerMapPinModalProps> = ({
                     <span>Snap to Site</span>
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setShowPhotoModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <Camera className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Upload Site Photos ({apfStore.getSiteVisitPhotos(caseData.id).length})</span>
+                </button>
               </div>
 
               <button
@@ -856,6 +867,15 @@ export const ValuerMapPinModal: React.FC<ValuerMapPinModalProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Site Visit Photo Upload Modal */}
+      {showPhotoModal && (
+        <SiteVisitPhotoUploadModal
+          isOpen={showPhotoModal}
+          onClose={() => setShowPhotoModal(false)}
+          caseData={caseData}
+        />
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 // Bank-Grade Builder & Project Exposure Types for PROVAL APF
-// Reference: PROVAL_APF_10_Builder_Simulated_Exposure_Dataset & PROVAL_APF_Exposure_API_Demo_Response
+// Reference: PROVAL_APF_10_Builder_Simulated_Exposure_Dataset & PROVAL_APF_Exposure_API_Response
 
 export type ExposureFreshnessType =
   | 'LIVE'
@@ -9,9 +9,9 @@ export type ExposureFreshnessType =
   | 'SIMULATED POC DATA'
   | 'NOT CONNECTED';
 
-export type ExposureFetchStatus = 'FETCHED' | 'DEMO CONNECTED' | 'NOT CONNECTED' | 'FAILED';
+export type ExposureFetchStatus = 'FETCHED' | 'CONNECTED' | 'NOT CONNECTED' | 'FAILED';
 
-export type DemoReconciliationStatus =
+export type ExposureReconciliationStatus =
   | 'MATCHED'
   | 'PARTIAL MATCH'
   | 'DISCOVERED NOT DECLARED'
@@ -44,7 +44,7 @@ export interface BuilderExposureSummary {
   lastRefresh?: string;
 }
 
-export interface DemoLenderFacility {
+export interface ExposureLenderFacility {
   facilityId: string;
   builderId: string;
   builderName: string;
@@ -60,11 +60,11 @@ export interface DemoLenderFacility {
   source: string;
   asOf: string;
   pocLabel: 'SIMULATED POC DATA';
-  status: DemoReconciliationStatus;
+  status: ExposureReconciliationStatus;
   borrowerEntity?: string;
 }
 
-export interface DemoProjectExposure {
+export interface ExposureProjectDetail {
   projectId: string;
   builderId: string;
   builderName: string;
@@ -84,7 +84,7 @@ export interface DemoProjectExposure {
   pocLabel: 'SIMULATED POC DATA';
 }
 
-export interface DemoGroupEntity {
+export interface ExposureGroupEntity {
   entityId: string;
   builderId: string;
   builderName: string;
@@ -95,7 +95,7 @@ export interface DemoGroupEntity {
   pocLabel: 'SIMULATED POC DATA';
 }
 
-export interface DemoSourceFetchStatus {
+export interface ExposureSourceFetchStatus {
   source: string;
   status: ExposureFetchStatus;
   freshness: ExposureFreshnessType;
@@ -104,7 +104,7 @@ export interface DemoSourceFetchStatus {
   lastFetchTime?: string;
 }
 
-export interface DemoReconciliationItem {
+export interface ExposureReconciliationItem {
   id: string;
   builderId: string;
   builderName: string;
@@ -114,7 +114,7 @@ export interface DemoReconciliationItem {
   sourceB: string;
   valueB: number;
   varianceCr: number;
-  status: DemoReconciliationStatus;
+  status: ExposureReconciliationStatus;
   reason: string;
   pocLabel: 'SIMULATED POC DATA';
   reviewedBy?: string;
@@ -123,17 +123,17 @@ export interface DemoReconciliationItem {
 }
 
 export interface BuilderExposureResponse {
-  mode: 'DEMO';
+  mode: 'LIVE' | 'SIMULATION' | 'BENCHMARK';
   label: 'SIMULATED POC DATA';
   builderId: string;
   builderName: string;
   fetchedAt: string;
   summary: BuilderExposureSummary;
-  facilities: DemoLenderFacility[];
-  projects: DemoProjectExposure[];
-  sources: DemoSourceFetchStatus[];
-  reconciliation: DemoReconciliationItem[];
-  groupEntities: DemoGroupEntity[];
+  facilities: ExposureLenderFacility[];
+  projects: ExposureProjectDetail[];
+  sources: ExposureSourceFetchStatus[];
+  reconciliation: ExposureReconciliationItem[];
+  groupEntities: ExposureGroupEntity[];
 }
 
 export interface ExposureSnapshot {
@@ -166,8 +166,8 @@ export interface ExposureSnapshot {
 export interface ExposureService {
   fetchBuilderExposure(builderId: string): Promise<BuilderExposureResponse>;
   getExposureSnapshot(snapshotId: string): Promise<ExposureSnapshot | undefined>;
-  getLenderExposure(builderId: string): Promise<DemoLenderFacility[]>;
-  getProjectExposure(builderId: string): Promise<DemoProjectExposure[]>;
-  getReconciliation(builderId: string): Promise<DemoReconciliationItem[]>;
-  getGroupExposure(builderId: string): Promise<DemoGroupEntity[]>;
+  getLenderExposure(builderId: string): Promise<ExposureLenderFacility[]>;
+  getProjectExposure(builderId: string): Promise<ExposureProjectDetail[]>;
+  getReconciliation(builderId: string): Promise<ExposureReconciliationItem[]>;
+  getGroupExposure(builderId: string): Promise<ExposureGroupEntity[]>;
 }

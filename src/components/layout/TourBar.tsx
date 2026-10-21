@@ -84,7 +84,7 @@ const TOUR_STEPS: TourStepMeta[] = [
   },
 ];
 
-export const DemoTourBar: React.FC = () => {
+export const TourBar: React.FC = () => {
   const { tourStep, isTourOpen, setIsTourOpen, goToTourStep, nextTourStep, prevTourStep } = useAPF();
 
   if (!isTourOpen) return null;
@@ -97,7 +97,7 @@ export const DemoTourBar: React.FC = () => {
       <div className="flex items-center gap-3 w-full md:w-auto">
         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[11px] font-bold shrink-0 shadow-xs">
           <Compass className="w-3.5 h-3.5" />
-          <span>Demo Step {tourStep} of 9</span>
+          <span>Tour Step {tourStep} of 9</span>
         </div>
 
         <div className="min-w-0 flex-1">

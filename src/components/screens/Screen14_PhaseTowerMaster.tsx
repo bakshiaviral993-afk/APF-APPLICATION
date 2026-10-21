@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAPF } from '../../context/APFContext';
 import { Layers, Building, ChevronRight } from 'lucide-react';
-import { DEMO_TOWERS } from '../../data/mockData';
+import { SAMPLE_TOWERS } from '../../data/mockData';
 
 export const Screen14_PhaseTowerMaster: React.FC = () => {
   const { setCurrentScreen, setSelectedTower } = useAPF();
@@ -39,7 +39,7 @@ export const Screen14_PhaseTowerMaster: React.FC = () => {
 
       {/* Tower Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {DEMO_TOWERS.map((t) => (
+        {SAMPLE_TOWERS.map((t) => (
           <div
             key={t.id}
             onClick={() => {

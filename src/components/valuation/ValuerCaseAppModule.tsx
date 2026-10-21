@@ -24,6 +24,10 @@ import {
   Sparkles,
   Info,
   Check,
+  Upload,
+  Maximize2,
+  FileCheck2,
+  Tag,
 } from 'lucide-react';
 import { APFCase, UserAccount } from '../../types/apfTransaction';
 import {
@@ -53,6 +57,7 @@ import {
 import { ValuationReportDocPreview } from './ValuationReportDocPreview';
 import { InteractiveSiteMapView } from '../maps/InteractiveSiteMapView';
 import { ValuerMapPinModal } from '../maps/ValuerMapPinModal';
+import { SiteVisitPhotoUploadModal } from './SiteVisitPhotoUploadModal';
 
 interface ValuerCaseAppModuleProps {
   caseData: APFCase;
@@ -85,6 +90,10 @@ export const ValuerCaseAppModule: React.FC<ValuerCaseAppModuleProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<ValuerTabKey>('ASSIGNMENT');
   const [showMapPinModal, setShowMapPinModal] = useState(false);
+  const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
+  const [photoUploadCategory, setPhotoUploadCategory] = useState<string | undefined>(undefined);
+  const [lightboxPhoto, setLightboxPhoto] = useState<ValuationPhotoEvidence | null>(null);
+  const [photoFilter, setPhotoFilter] = useState<string>('ALL');
   const [isSavedToast, setIsSavedToast] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
@@ -464,20 +473,34 @@ export const ValuerCaseAppModule: React.FC<ValuerCaseAppModuleProps> = ({
         {/* TAB 2: START VISIT */}
         {activeTab === 'START_VISIT' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div className="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 gap-2">
               <div>
                 <h2 className="text-base font-black text-slate-900">Tab 2: Start Site Visit & GPS Geofence Verification</h2>
                 <p className="text-xs text-slate-500">
-                  Capture visit timestamp, device coordinates, and verify 500m project geofence compliance.
+                  Capture visit timestamp, device coordinates, verify 500m project geofence compliance, and attach on-site photos.
                 </p>
               </div>
-              <button
-                onClick={() => setShowMapPinModal(true)}
-                className="px-3.5 py-2 bg-sky-700 hover:bg-sky-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
-              >
-                <MapPin className="w-4 h-4" />
-                <span>Verify on Google Maps</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhotoUploadCategory('Project Entrance');
+                    setShowPhotoUploadModal(true);
+                  }}
+                  className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Upload Site Photos ({formData.photos?.length || 0})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMapPinModal(true)}
+                  className="px-3.5 py-2 bg-sky-700 hover:bg-sky-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span>Verify on Google Maps</span>
+                </button>
+              </div>
             </div>
 
             {/* Interactive Map */}
@@ -488,6 +511,90 @@ export const ValuerCaseAppModule: React.FC<ValuerCaseAppModuleProps> = ({
                 canPin={true}
                 onOpenPinModal={() => setShowMapPinModal(true)}
               />
+            </div>
+
+            {/* Site Inspection Photographic Evidence Strip */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                    <Camera className="w-4.5 h-4.5 text-emerald-700" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">
+                      Site Visit Photographic Evidence ({formData.photos?.length || 0} Photos Attached)
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Mandatory technical due diligence photos: Entrance, RERA Board, Tower Slabs & Approach Road
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhotoUploadCategory('Construction Progress');
+                      setShowPhotoUploadModal(true);
+                    }}
+                    className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Upload Site Photos</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('PHOTOS_EVIDENCE')}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Open Photo Studio →</span>
+                  </button>
+                </div>
+              </div>
+
+              {formData.photos && formData.photos.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5 pt-1">
+                  {formData.photos.slice(0, 6).map((ph) => (
+                    <div
+                      key={ph.id}
+                      onClick={() => setLightboxPhoto(ph)}
+                      className="group relative h-24 rounded-lg overflow-hidden border border-slate-200 bg-slate-900 cursor-pointer shadow-2xs hover:shadow-md transition-all"
+                    >
+                      {ph.photoUrl ? (
+                        <img
+                          src={ph.photoUrl}
+                          alt={ph.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-400">
+                          <Camera className="w-6 h-6 opacity-40" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent flex flex-col justify-between p-1.5 text-white pointer-events-none">
+                        <span className="text-[8px] bg-slate-950/80 px-1 py-0.5 rounded font-mono truncate self-start">
+                          {ph.category}
+                        </span>
+                        <div className="text-[9px] font-mono text-emerald-300 flex justify-between">
+                          <span>GPS Locked</span>
+                          <span>±{ph.accuracyMeters}m</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-lg text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-center gap-2">
+                  <span>No site photos uploaded yet. Minimum 4 geo-tagged site photos are mandatory.</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoUploadModal(true)}
+                    className="px-3 py-1 bg-emerald-700 text-white rounded-lg font-bold hover:bg-emerald-800"
+                  >
+                    Upload First Photo Now
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
@@ -1599,42 +1706,285 @@ export const ValuerCaseAppModule: React.FC<ValuerCaseAppModuleProps> = ({
         {/* TAB 11: PHOTOS & EVIDENCE */}
         {activeTab === 'PHOTOS_EVIDENCE' && (
           <div className="space-y-6">
-            <div className="border-b border-slate-200 pb-3">
-              <h2 className="text-base font-black text-slate-900">Tab 11: Photographic Annexure & Geo-tagged Evidence</h2>
-              <p className="text-xs text-slate-500">
-                Entrance, RERA display, towers, progress close-ups, and approach road.
-              </p>
+            <div className="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 gap-3">
+              <div>
+                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <span>Tab 11: Photographic Annexure & Geo-tagged Evidence</span>
+                  <span className="text-xs font-mono font-bold bg-sky-100 text-sky-800 px-2 py-0.5 rounded">
+                    {formData.photos?.length || 0} Photos Attached
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Mandatory field photos with tamper-evident GPS coordinates, IST timestamp, accuracy radius, and tower mapping.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sampleList = [
+                      {
+                        category: 'Project Entrance',
+                        title: 'Grand Entrance Gate & Security Cabin',
+                        notes: '24m DP road access gate with security cabin and project branding banner.',
+                        photoUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80',
+                      },
+                      {
+                        category: 'RERA Board',
+                        title: 'State RERA Registration Board at Site',
+                        notes: 'Official public display board showing sanction dates and RERA registration QR code.',
+                        photoUrl: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=1200&q=80',
+                      },
+                      {
+                        category: 'Assigned Tower',
+                        title: 'Tower A & B Elevation and Active Slabs',
+                        notes: 'RCC framing completed up to 18th floor; brickwork in progress on 12th to 14th floors.',
+                        photoUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80',
+                      },
+                      {
+                        category: 'Construction Progress',
+                        title: 'Active Slab Shuttering & Steel Reinforcement',
+                        notes: 'Rebar binding verified as per structural design. Safety perimeter netting installed.',
+                        photoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?auto=format&fit=crop&w=1200&q=80',
+                      },
+                      {
+                        category: 'Approach Road',
+                        title: '24m Bituminous Approach Corridor',
+                        notes: 'Direct 4-lane access road connected to arterial highway with street lighting poles.',
+                        photoUrl: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=1200&q=80',
+                      },
+                      {
+                        category: 'Internal Unit / Sample Flat',
+                        title: 'Sample Unit - Plastering & Flooring Progress',
+                        notes: 'Vitrified tile flooring laid. Electrical concealed conduit wiring completed.',
+                        photoUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+                      },
+                    ];
+
+                    const baseLat = project?.latLong.lat || 18.5593;
+                    const baseLng = project?.latLong.lng || 73.7845;
+                    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+                    const samplePhotos: ValuationPhotoEvidence[] = sampleList.map((s, idx) => ({
+                      id: `PH-SAM-${idx + 1}-${Date.now()}`,
+                      category: s.category,
+                      towerId: towers[idx % Math.max(towers.length, 1)]?.id,
+                      towerName: towers[idx % Math.max(towers.length, 1)]?.towerName || 'Campus Base',
+                      title: s.title,
+                      timestamp: now,
+                      lat: Number((baseLat + (idx * 0.00015 - 0.0003)).toFixed(5)),
+                      lng: Number((baseLng + (idx * 0.00012 - 0.0002)).toFixed(5)),
+                      accuracyMeters: 2.8 + (idx % 2) * 0.4,
+                      isInsideGeofence: true,
+                      capturedBy: currentUser?.name || 'M. K. Kulkarni',
+                      valuerId: currentUser?.id || 'VAL-01',
+                      deviceSessionId: `VAL-SESSION-${idx + 10}`,
+                      notes: s.notes,
+                      photoUrl: s.photoUrl,
+                      evidenceId: `EVID-SAM-${100 + idx}`,
+                    }));
+
+                    handleUpdate({ photos: samplePhotos });
+                    apfStore.updateSiteVisitPhotos(caseData.id, samplePhotos);
+                    setIsSavedToast(true);
+                    setTimeout(() => setIsSavedToast(false), 2500);
+                  }}
+                  className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Load Sample Photos</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPhotoUploadModal(true)}
+                  className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Take / Upload Photo</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {formData.photos?.map((ph, pIdx) => (
-                <div key={ph.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-slate-900">{ph.title}</span>
-                    <span className="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-mono">
-                      {ph.category}
-                    </span>
-                  </div>
-                  <div className="h-32 bg-slate-200 rounded-lg flex items-center justify-center text-slate-400 relative">
-                    <Camera className="w-8 h-8 opacity-40" />
-                    <div className="absolute bottom-1 left-2 text-[9px] font-mono text-slate-600 bg-white/80 px-1 rounded">
-                      GPS: {ph.lat?.toFixed(4)}, {ph.lng?.toFixed(4)}
+            {/* Category Filter Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-slate-200">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">Filter:</span>
+              <button
+                type="button"
+                onClick={() => setPhotoFilter('ALL')}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  photoFilter === 'ALL'
+                    ? 'bg-slate-900 text-white shadow-2xs'
+                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                All ({formData.photos?.length || 0})
+              </button>
+              {[
+                'Project Entrance',
+                'RERA Board',
+                'Assigned Tower',
+                'Construction Progress',
+                'Approach Road',
+                'Internal Unit / Sample Flat',
+              ].map((cat) => {
+                const count = formData.photos?.filter((p) => p.category === cat).length || 0;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setPhotoFilter(cat)}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                      photoFilter === cat
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+                    }`}
+                  >
+                    {cat} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Photo Cards Grid */}
+            {(!formData.photos || formData.photos.length === 0) ? (
+              <div className="bg-white rounded-2xl border-2 border-dashed border-slate-300 p-12 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 mx-auto flex items-center justify-center">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-900">No Photographic Evidence Stored</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Valuers must provide on-site photos of project entrance, RERA display, tower elevation, and active slabs to complete the APF appraisal.
+                </p>
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoUploadModal(true)}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Site Photos</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(photoFilter === 'ALL'
+                  ? formData.photos
+                  : formData.photos.filter((p) => p.category === photoFilter)
+                ).map((ph, pIdx) => (
+                  <div
+                    key={ph.id}
+                    className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group"
+                  >
+                    {/* Image Header with Geotag Stamp */}
+                    <div
+                      className="relative h-48 bg-slate-900 overflow-hidden cursor-pointer"
+                      onClick={() => setLightboxPhoto(ph)}
+                    >
+                      {ph.photoUrl ? (
+                        <img
+                          src={ph.photoUrl}
+                          alt={ph.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1.5">
+                          <Camera className="w-8 h-8 opacity-40" />
+                          <span className="text-[10px] font-mono">Camera Capture Placeholder</span>
+                        </div>
+                      )}
+
+                      {/* Top Badges */}
+                      <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
+                        <span className="text-[10px] bg-slate-950/85 text-white font-bold font-mono px-2 py-0.5 rounded border border-white/10">
+                          {ph.category}
+                        </span>
+                        <span className="text-[10px] bg-sky-950/85 text-sky-200 font-bold font-mono px-2 py-0.5 rounded border border-sky-400/30">
+                          {ph.towerName || 'Campus'}
+                        </span>
+                      </div>
+
+                      {/* Bottom Forensic Watermark Bar */}
+                      <div className="absolute bottom-0 inset-x-0 bg-slate-950/85 text-white p-2 text-[9px] font-mono space-y-0.5">
+                        <div className="flex justify-between items-center text-emerald-400">
+                          <span>GPS: {ph.lat?.toFixed(5)}, {ph.lng?.toFixed(5)}</span>
+                          <span>{ph.isInsideGeofence ? '✓ Inside 500m' : '⚠ Offsite'}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-400 text-[8px]">
+                          <span>{ph.timestamp}</span>
+                          <span>±{ph.accuracyMeters}m</span>
+                        </div>
+                      </div>
+
+                      {/* Inspect Overlay Trigger */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightboxPhoto(ph);
+                          }}
+                          className="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-lg shadow-md flex items-center gap-1 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-sky-700" />
+                          <span>Inspect Full Size</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content & Observations Editor */}
+                    <div className="p-3.5 space-y-2.5 flex-1 flex flex-col justify-between text-xs">
+                      <div className="space-y-1.5">
+                        <input
+                          type="text"
+                          value={ph.title}
+                          onChange={(e) => {
+                            const next = [...formData.photos];
+                            next[pIdx].title = e.target.value;
+                            handleUpdate({ photos: next });
+                            apfStore.updateSiteVisitPhotos(caseData.id, next);
+                          }}
+                          placeholder="Evidence title..."
+                          className="w-full font-bold text-xs text-slate-900 border border-transparent hover:border-slate-300 focus:border-sky-500 rounded p-1"
+                        />
+                        <textarea
+                          rows={2}
+                          value={ph.notes}
+                          onChange={(e) => {
+                            const next = [...formData.photos];
+                            next[pIdx].notes = e.target.value;
+                            handleUpdate({ photos: next });
+                            apfStore.updateSiteVisitPhotos(caseData.id, next);
+                          }}
+                          placeholder="Physical inspection remarks..."
+                          className="w-full text-[11px] text-slate-600 border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-sky-500 resize-none leading-relaxed"
+                        />
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <span className="truncate max-w-[170px]">Valuer: {ph.capturedBy}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('Delete this site visit photo?')) {
+                              const next = formData.photos.filter((_, idx) => idx !== pIdx);
+                              handleUpdate({ photos: next });
+                              apfStore.deleteSiteVisitPhoto(caseData.id, ph.id);
+                            }
+                          }}
+                          className="text-rose-600 hover:text-rose-700 font-bold p-1 rounded hover:bg-rose-50 cursor-pointer"
+                          title="Delete photo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <input
-                    type="text"
-                    value={ph.notes}
-                    onChange={(e) => {
-                      const next = [...formData.photos];
-                      next[pIdx].notes = e.target.value;
-                      handleUpdate({ photos: next });
-                    }}
-                    placeholder="Evidence description..."
-                    className="w-full border border-slate-300 rounded-lg p-2 text-xs"
-                  />
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1784,6 +2134,84 @@ export const ValuerCaseAppModule: React.FC<ValuerCaseAppModuleProps> = ({
             }
           }}
         />
+      )}
+
+      {/* Site Visit Photo Upload Modal */}
+      {showPhotoUploadModal && (
+        <SiteVisitPhotoUploadModal
+          isOpen={showPhotoUploadModal}
+          onClose={() => setShowPhotoUploadModal(false)}
+          caseData={caseData}
+          initialCategory={photoUploadCategory}
+          onPhotosUpdated={(updatedPhotos) => {
+            handleUpdate({ photos: updatedPhotos });
+          }}
+        />
+      )}
+
+      {/* Full Resolution Lightbox Modal */}
+      {lightboxPhoto && (
+        <div className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="relative max-w-5xl w-full bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col max-h-[92vh]">
+            <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-white">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm">{lightboxPhoto.title}</span>
+                <span className="text-[10px] bg-sky-900 text-sky-200 px-2 py-0.5 rounded font-mono">
+                  {lightboxPhoto.category}
+                </span>
+                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
+                  {lightboxPhoto.towerName || 'Campus'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLightboxPhoto(null)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 bg-black flex items-center justify-center p-2 min-h-[360px] max-h-[60vh] overflow-hidden">
+              {lightboxPhoto.photoUrl ? (
+                <img
+                  src={lightboxPhoto.photoUrl}
+                  alt={lightboxPhoto.title}
+                  className="max-h-[58vh] max-w-full object-contain"
+                />
+              ) : (
+                <div className="text-slate-500">Image not available</div>
+              )}
+            </div>
+
+            <div className="p-4 bg-slate-900 text-white border-t border-slate-800 text-xs space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] font-mono">
+                <div className="p-2 bg-slate-800/80 rounded-lg">
+                  <span className="text-[9px] text-slate-400 block uppercase">Coordinates</span>
+                  <span className="text-emerald-400 font-bold">{lightboxPhoto.lat.toFixed(5)}, {lightboxPhoto.lng.toFixed(5)}</span>
+                </div>
+                <div className="p-2 bg-slate-800/80 rounded-lg">
+                  <span className="text-[9px] text-slate-400 block uppercase">Timestamp</span>
+                  <span className="text-slate-200">{lightboxPhoto.timestamp}</span>
+                </div>
+                <div className="p-2 bg-slate-800/80 rounded-lg">
+                  <span className="text-[9px] text-slate-400 block uppercase">Geofence</span>
+                  <span className={lightboxPhoto.isInsideGeofence ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                    {lightboxPhoto.isInsideGeofence ? '✓ Inside 500m' : '⚠ Offsite'}
+                  </span>
+                </div>
+                <div className="p-2 bg-slate-800/80 rounded-lg">
+                  <span className="text-[9px] text-slate-400 block uppercase">Captured By</span>
+                  <span className="text-slate-200 truncate block">{lightboxPhoto.capturedBy}</span>
+                </div>
+              </div>
+              <div className="p-2.5 bg-slate-800/50 rounded-lg">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Physical Field Notes</span>
+                <p className="text-slate-200 text-xs">{lightboxPhoto.notes}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

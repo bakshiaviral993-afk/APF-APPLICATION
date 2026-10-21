@@ -22,7 +22,18 @@ import {
   MapPin,
   Clock,
   Download,
+  Camera,
+  Upload,
+  Eye,
+  Sparkles,
 } from 'lucide-react';
+import { SiteVisitPhotoUploadModal } from '../valuation/SiteVisitPhotoUploadModal';
+import {
+  getProjectById,
+  getBuilderById,
+  getTowerById,
+  CENTRAL_TOWER_MASTER,
+} from '../../data/centralMasterData';
 
 interface ExternalValuerPortalProps {
   currentUser: UserAccount;
@@ -41,6 +52,7 @@ export const ExternalValuerPortal: React.FC<ExternalValuerPortalProps> = ({
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [siteVisitModalCaseId, setSiteVisitModalCaseId] = useState<string | null>(null);
+  const [photoUploadModalCaseId, setPhotoUploadModalCaseId] = useState<string | null>(null);
 
   const [cases, setCases] = useState<APFCase[]>(() => apfStore.getAllCases());
 
@@ -61,7 +73,7 @@ export const ExternalValuerPortal: React.FC<ExternalValuerPortalProps> = ({
 
   const handleRoleSwitch = (username: string) => {
     setIsRoleDropdownOpen(false);
-    apfStore.login(username, 'Demo@123');
+    apfStore.login(username, 'Secure@123');
     if (onSwitchUser) onSwitchUser(username);
   };
 
@@ -265,6 +277,154 @@ export const ExternalValuerPortal: React.FC<ExternalValuerPortalProps> = ({
             )
           ) : activeView === 'BILLING' ? (
             <ExternalLegalBillingView currentUser={currentUser} onNavigateToCase={handleOpenCase} />
+          ) : activeView === 'SITE_VISIT_QUEUE' ? (
+            <div className="max-w-6xl mx-auto space-y-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl">
+                      <Camera className="w-5 h-5 text-emerald-700" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-slate-900">
+                        Site Visit Inspections & Photo Documentation Desk
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Field inspection schedule, 500m geofence compliance verification, and on-site photographic evidence.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="font-semibold text-slate-600">Active Queue:</span>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                    {cases.filter((c) => isCaseAccessible(c)).length} Assigned Projects
+                  </span>
+                </div>
+              </div>
+
+              {/* Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {cases
+                  .filter((c) => isCaseAccessible(c))
+                  .map((c) => {
+                    const proj = getProjectById(c.projectId);
+                    const bld = getBuilderById(c.builderId);
+                    const twrs = CENTRAL_TOWER_MASTER.filter((t) => c.selectedTowerIds.includes(t.id));
+                    const photos = apfStore.getSiteVisitPhotos(c.id);
+                    const isPinned = !!c.valuerAssignment?.pinnedLocation?.lat || !!c.siteVisitEvidence?.[0]?.lat;
+
+                    return (
+                      <div
+                        key={c.id}
+                        className="bg-white rounded-xl border border-slate-200 shadow-2xs hover:shadow-md transition-all p-4 space-y-3 flex flex-col justify-between"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className="text-[10px] font-mono font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                                Case {c.id}
+                              </span>
+                              <h3 className="font-bold text-sm text-slate-900 mt-1">
+                                {proj?.projectName || 'Project Inspection'}
+                              </h3>
+                              <p className="text-xs text-slate-500 font-medium">
+                                {bld?.legalName || 'Developer'} · {proj?.city || 'Pune'}
+                              </p>
+                            </div>
+
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded font-mono ${
+                                photos.length >= 4
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}
+                            >
+                              {photos.length} Photos Attached
+                            </span>
+                          </div>
+
+                          <div className="p-2.5 bg-slate-50 rounded-lg text-xs space-y-1 text-slate-600">
+                            <div className="flex items-center gap-1.5">
+                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">
+                                <strong>Assigned Towers:</strong> {twrs.map((t) => t.towerName).join(', ') || 'Phase 1 Towers'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">{proj?.address || 'Baner-Pashan Link Road, Pune'}</span>
+                            </div>
+                            <div className="flex items-center justify-between pt-1">
+                              <span>Geofence Status:</span>
+                              <span className={`font-bold ${isPinned ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                {isPinned ? '✓ Location Pinned on Site' : 'Pending GPS Verification'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Mini thumbnails preview */}
+                          {photos.length > 0 && (
+                            <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                              {photos.slice(0, 4).map((ph) => (
+                                <div
+                                  key={ph.id}
+                                  className="w-14 h-12 rounded-lg bg-slate-900 overflow-hidden shrink-0 border border-slate-200"
+                                >
+                                  {ph.photoUrl ? (
+                                    <img src={ph.photoUrl} alt={ph.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-500">
+                                      <Camera className="w-4 h-4 opacity-50" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              {photos.length > 4 && (
+                                <span className="text-[10px] text-slate-500 font-bold">
+                                  +{photos.length - 4} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Actions */}
+                        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoUploadModalCaseId(c.id)}
+                            className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>Upload Site Photos ({photos.length})</span>
+                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSiteVisitModalCaseId(c.id)}
+                              className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                              title="Verify GPS Pin on Google Maps"
+                            >
+                              <MapPin className="w-3.5 h-3.5 text-sky-700" />
+                              <span>GPS Pin</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCase(c.id)}
+                              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              <span>Open Dossier →</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
           ) : activeView === 'PROFILE' ? (
             <div className="max-w-4xl mx-auto bg-white rounded-xl border border-[#DCE3EB] p-6 shadow-xs space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-[#DCE3EB]">
@@ -307,6 +467,7 @@ export const ExternalValuerPortal: React.FC<ExternalValuerPortalProps> = ({
               cases={cases}
               onOpenCase={handleOpenCase}
               onOpenSiteVisit={(cId) => setSiteVisitModalCaseId(cId)}
+              onOpenPhotoUpload={(cId) => setPhotoUploadModalCaseId(cId)}
               onNavigateToBilling={() => setActiveView('BILLING')}
             />
           )}
@@ -320,6 +481,16 @@ export const ExternalValuerPortal: React.FC<ExternalValuerPortalProps> = ({
           caseData={siteVisitCase}
           onClose={() => setSiteVisitModalCaseId(null)}
           onLocationPinned={() => setSiteVisitModalCaseId(null)}
+        />
+      )}
+
+      {/* Site Visit Photo Upload Modal */}
+      {photoUploadModalCaseId && cases.find((c) => c.id === photoUploadModalCaseId) && (
+        <SiteVisitPhotoUploadModal
+          isOpen={true}
+          caseData={cases.find((c) => c.id === photoUploadModalCaseId)!}
+          onClose={() => setPhotoUploadModalCaseId(null)}
+          onPhotosUpdated={() => setCases(apfStore.getAllCases())}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAPF } from '../../context/APFContext';
 import { Network, Building2, ChevronRight, ShieldCheck, ArrowDownRight, Layers, CheckCircle2 } from 'lucide-react';
-import { DEMO_COMPANIES, DEMO_BUILDER_GROUP } from '../../data/mockData';
+import { SAMPLE_COMPANIES, SAMPLE_BUILDER_GROUP } from '../../data/mockData';
 
 export const Screen05_GroupGraph: React.FC = () => {
   const { setCurrentScreen, setSelectedCompany, addAuditLog } = useAPF();
@@ -25,7 +25,7 @@ export const Screen05_GroupGraph: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-[#627d98] mt-0.5">
-            Group Parent: ABC Realty Group / Apex Habitat • Sanctioned Group Cap: ₹{DEMO_BUILDER_GROUP.overallLimitCr || 600} Cr
+            Group Parent: ABC Realty Group / Apex Habitat • Sanctioned Group Cap: ₹{SAMPLE_BUILDER_GROUP.overallLimitCr || 600} Cr
           </p>
         </div>
 
@@ -54,7 +54,7 @@ export const Screen05_GroupGraph: React.FC = () => {
             </span>
             <h3 className="text-lg font-bold text-[#102a43]">ABC Realty Group (Apex Habitat)</h3>
             <p className="text-xs text-[#627d98]">
-              HQ: BKC Mumbai • Total Net Worth: ₹{DEMO_BUILDER_GROUP.totalNetWorthCr || 280.0} Cr
+              HQ: BKC Mumbai • Total Net Worth: ₹{SAMPLE_BUILDER_GROUP.totalNetWorthCr || 280.0} Cr
             </p>
             <div className="pt-2 flex justify-center gap-3 text-xs font-semibold">
               <span className="text-[#102a43]">Group Exposure: ₹{spvConfirmed ? '505 Cr (84.2%)' : '484.5 Cr (80.8%)'}</span>
@@ -67,7 +67,7 @@ export const Screen05_GroupGraph: React.FC = () => {
 
         {/* Operating & SPV Children */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {DEMO_COMPANIES.map((comp) => {
+          {SAMPLE_COMPANIES.map((comp) => {
             const isSelected = selectedNode === comp.legalName;
             const displayName = comp.id === 'COMP-01' ? 'ABC Developers Pvt. Ltd.' : comp.id === 'COMP-03' ? 'Alpha SPV Pvt Ltd' : comp.legalName;
             return (

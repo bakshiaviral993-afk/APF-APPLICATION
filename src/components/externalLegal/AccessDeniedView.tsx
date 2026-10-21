@@ -43,7 +43,7 @@ export const AccessDeniedView: React.FC<AccessDeniedViewProps> = ({
           </div>
           <div className="flex justify-between items-center text-slate-500">
             <span>Authorized Firm:</span>
-            <span className="font-medium text-slate-800">{currentUser.firmName || 'Demo Legal Associates'}</span>
+            <span className="font-medium text-slate-800">{currentUser.firmName || 'Apex Legal Associates'}</span>
           </div>
           <div className="flex justify-between items-center text-slate-500">
             <span>Vendor ID:</span>

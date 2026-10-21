@@ -76,7 +76,7 @@ export const ExternalLegalPortal: React.FC<ExternalLegalPortalProps> = ({
 
   const handleRoleSwitch = (username: string) => {
     setIsRoleDropdownOpen(false);
-    apfStore.login(username, 'Demo@123');
+    apfStore.login(username, 'Secure@123');
     if (onSwitchUser) onSwitchUser(username);
   };
 

@@ -176,7 +176,7 @@ export interface BuilderMaster {
   yearsInBusiness?: number;
   registeredAddress?: string;
   corporateAddress?: string;
-  city: 'Pune' | 'Mumbai';
+  city: string;
   state?: string;
   pincode?: string;
   country?: string;
@@ -269,7 +269,7 @@ export interface ProjectMaster {
 
   // Location / Geography
   locality: string;
-  city: 'Pune' | 'Mumbai';
+  city: string;
   district?: string;
   state?: string;
   pincode?: string;
@@ -364,6 +364,7 @@ export interface ProjectMaster {
 export interface PhaseMaster {
   id: string; // e.g. PHS-PUN-001-01
   projectId: string;
+  builderId?: string;
   phaseName: string;
   phaseNumber?: string;
   reraNumber: string;
@@ -393,6 +394,7 @@ export interface TowerMaster {
   id: string; // e.g. TWR-PUN-001-E
   phaseId: string;
   projectId: string;
+  builderId?: string;
   towerName: string;
   towerCode?: string;
   buildingNumber?: string;
@@ -473,6 +475,9 @@ export interface TowerMaster {
 export interface UnitMaster {
   id: string; // e.g. UNT-PUN-001-E-101
   towerId: string;
+  phaseId?: string;
+  projectId?: string;
+  builderId?: string;
   unitNumber: string;
   floorNumber: number;
   wing?: string;
@@ -577,7 +582,21 @@ export interface ValuerAssignmentDetails {
 
 export interface SiteVisitEvidence {
   id: string;
-  category: 'Entrance' | 'RERA Board' | 'Towers' | 'Construction' | 'Approach Road' | 'Surroundings';
+  category:
+    | 'Entrance'
+    | 'RERA Board'
+    | 'Towers'
+    | 'Construction'
+    | 'Approach Road'
+    | 'Surroundings'
+    | 'Project Entrance'
+    | 'Assigned Tower'
+    | 'Construction Progress'
+    | 'Amenities'
+    | 'Internal Unit / Sample Flat'
+    | 'Safety & Machinery'
+    | 'Deviation Evidence'
+    | string;
   title: string;
   timestamp: string;
   lat: number;
@@ -587,6 +606,11 @@ export interface SiteVisitEvidence {
   capturedBy: string;
   deviceSessionId: string;
   notes: string;
+  photoUrl?: string;
+  towerId?: string;
+  towerName?: string;
+  fileSizeKb?: number;
+  dimensions?: string;
 }
 
 export interface MarketComparable {

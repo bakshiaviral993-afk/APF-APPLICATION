@@ -79,13 +79,16 @@ class MasterDataStore {
         this.phases = parsed.phases || [];
         this.towers = parsed.towers || [];
         this.units = parsed.units || [];
+        this.repairHierarchy();
       } else {
         this.seedInitialMasters();
+        this.repairHierarchy();
         this.saveMasters();
       }
     } catch (e) {
       console.error('Error loading master store:', e);
       this.seedInitialMasters();
+      this.repairHierarchy();
       this.auditTrail = this.seedAuditTrail();
     }
   }
@@ -1817,11 +1820,288 @@ class MasterDataStore {
     return false;
   }
 
-  // --- Reset to Demo Defaults ---
-  public resetDemoMasters() {
+  // --- Relational Data Migration & Hierarchy Repair Engine ---
+  public repairHierarchy() {
+    let modified = false;
+
+    // 1. Ensure all projects have valid hierarchy linkage
+    for (const proj of this.projects) {
+      if (!proj.id) continue;
+      const bId = proj.builderId;
+
+      // Check if phase exists for this project
+      let projPhases = this.phases.filter((ph) => ph.projectId === proj.id);
+      if (projPhases.length === 0) {
+        const newPhase: PhaseMaster = {
+          id: `PHS-${proj.id}-01`,
+          projectId: proj.id,
+          builderId: bId,
+          phaseName: `${proj.projectName} - Phase 1`,
+          phaseNumber: 'Phase 1',
+          reraNumber: proj.reraNumbers?.[0] || 'RERA-PENDING',
+          sanctionDate: '2022-04-10',
+          expectedCompletionDate: proj.expectedCompletionDate || '2027-12-31',
+          phaseStatus: 'Under Construction',
+          phaseAreaSqFt: (proj.totalLandAreaAcres || 10) * 43560,
+          numberOfTowers: proj.totalSanctionedTowers || 2,
+          numberOfUnits: proj.totalUnitsCount || 180,
+          currentProgressPct: proj.currentProgressPct || 75,
+          isActive: true,
+          approvalStatus: 'APPROVED',
+          version: 1,
+          createdBy: 'System Hierarchy Repair Engine',
+          createdAt: new Date().toISOString(),
+        };
+        this.phases.push(newPhase);
+        projPhases = [newPhase];
+        modified = true;
+      } else {
+        // Backfill builderId on phases if missing
+        projPhases.forEach((ph) => {
+          if (!ph.builderId && bId) {
+            ph.builderId = bId;
+            modified = true;
+          }
+        });
+      }
+
+      const primaryPhaseId = projPhases[0].id;
+
+      // Check if towers exist for this project
+      let projTowers = this.towers.filter((t) => t.projectId === proj.id);
+      if (projTowers.length === 0) {
+        const towerA: TowerMaster = {
+          id: `TWR-${proj.id}-A`,
+          phaseId: primaryPhaseId,
+          projectId: proj.id,
+          builderId: bId,
+          towerName: 'Tower A',
+          towerCode: 'TWR-A',
+          buildingNumber: 'A',
+          wing: 'Wing A',
+          towerType: 'Residential',
+          floorsSanctioned: 24,
+          floorsConstructed: 18,
+          slabsCompleted: 18,
+          totalUnits: 96,
+          unitsPerFloor: 4,
+          constructionStage: 'Superstructure Finishing',
+          physicalProgressPct: proj.currentProgressPct || 75,
+          expectedProgressPct: 75,
+          ocStatus: 'Not Applied',
+          isActive: true,
+          approvalStatus: 'APPROVED',
+          version: 1,
+          createdBy: 'System Hierarchy Repair Engine',
+          createdAt: new Date().toISOString(),
+        };
+
+        const towerB: TowerMaster = {
+          id: `TWR-${proj.id}-B`,
+          phaseId: primaryPhaseId,
+          projectId: proj.id,
+          builderId: bId,
+          towerName: 'Tower B',
+          towerCode: 'TWR-B',
+          buildingNumber: 'B',
+          wing: 'Wing B',
+          towerType: 'Residential',
+          floorsSanctioned: 24,
+          floorsConstructed: 16,
+          slabsCompleted: 16,
+          totalUnits: 96,
+          unitsPerFloor: 4,
+          constructionStage: 'RCC Slab Casting in Progress',
+          physicalProgressPct: 65,
+          expectedProgressPct: 70,
+          ocStatus: 'Not Applied',
+          isActive: true,
+          approvalStatus: 'APPROVED',
+          version: 1,
+          createdBy: 'System Hierarchy Repair Engine',
+          createdAt: new Date().toISOString(),
+        };
+
+        this.towers.push(towerA, towerB);
+        projTowers = [towerA, towerB];
+        modified = true;
+      } else {
+        // Backfill phaseId, projectId, builderId on towers if missing
+        projTowers.forEach((t) => {
+          if (!t.phaseId) {
+            t.phaseId = primaryPhaseId;
+            modified = true;
+          }
+          if (!t.builderId && bId) {
+            t.builderId = bId;
+            modified = true;
+          }
+        });
+      }
+
+      // Ensure units exist for each tower
+      for (const t of projTowers) {
+        const towerUnits = this.units.filter((u) => u.towerId === t.id);
+        if (towerUnits.length === 0) {
+          const sampleUnits: UnitMaster[] = [
+            {
+              id: `UNT-${t.id}-101`,
+              towerId: t.id,
+              phaseId: t.phaseId,
+              projectId: t.projectId,
+              builderId: t.builderId,
+              unitNumber: '101',
+              floorNumber: 1,
+              wing: t.wing || 'A',
+              typology: '2 BHK',
+              configuration: '2 BHK Premium',
+              carpetAreaSqFt: 780,
+              agreementValueLakh: 85.0,
+              status: 'Available',
+              isSimulatedPocUnit: false,
+              isActive: true,
+              approvalStatus: 'APPROVED',
+            },
+            {
+              id: `UNT-${t.id}-102`,
+              towerId: t.id,
+              phaseId: t.phaseId,
+              projectId: t.projectId,
+              builderId: t.builderId,
+              unitNumber: '102',
+              floorNumber: 1,
+              wing: t.wing || 'A',
+              typology: '3 BHK',
+              configuration: '3 BHK Luxury',
+              carpetAreaSqFt: 1120,
+              agreementValueLakh: 125.0,
+              status: 'Available',
+              isSimulatedPocUnit: false,
+              isActive: true,
+              approvalStatus: 'APPROVED',
+            },
+            {
+              id: `UNT-${t.id}-201`,
+              towerId: t.id,
+              phaseId: t.phaseId,
+              projectId: t.projectId,
+              builderId: t.builderId,
+              unitNumber: '201',
+              floorNumber: 2,
+              wing: t.wing || 'A',
+              typology: '2 BHK',
+              configuration: '2 BHK Premium',
+              carpetAreaSqFt: 780,
+              agreementValueLakh: 86.5,
+              status: 'Available',
+              isSimulatedPocUnit: false,
+              isActive: true,
+              approvalStatus: 'APPROVED',
+            },
+            {
+              id: `UNT-${t.id}-202`,
+              towerId: t.id,
+              phaseId: t.phaseId,
+              projectId: t.projectId,
+              builderId: t.builderId,
+              unitNumber: '202',
+              floorNumber: 2,
+              wing: t.wing || 'A',
+              typology: '3 BHK',
+              configuration: '3 BHK Luxury',
+              carpetAreaSqFt: 1120,
+              agreementValueLakh: 127.0,
+              status: 'Available',
+              isSimulatedPocUnit: false,
+              isActive: true,
+              approvalStatus: 'APPROVED',
+            },
+          ];
+          this.units.push(...sampleUnits);
+          modified = true;
+        } else {
+          towerUnits.forEach((u) => {
+            if (!u.phaseId) {
+              u.phaseId = t.phaseId;
+              modified = true;
+            }
+            if (!u.projectId) {
+              u.projectId = t.projectId;
+              modified = true;
+            }
+            if (!u.builderId && t.builderId) {
+              u.builderId = t.builderId;
+              modified = true;
+            }
+          });
+        }
+      }
+    }
+
+    if (modified) {
+      this.saveMasters();
+    }
+  }
+
+  // Ensure hierarchy exists for a specific project
+  public ensureProjectHierarchy(projectId: string): { phases: PhaseMaster[]; towers: TowerMaster[] } {
+    let projPhases = this.phases.filter((ph) => ph.projectId === projectId);
+    let projTowers = this.towers.filter((t) => t.projectId === projectId);
+
+    if (projPhases.length === 0 || projTowers.length === 0) {
+      this.repairHierarchy();
+      projPhases = this.phases.filter((ph) => ph.projectId === projectId);
+      projTowers = this.towers.filter((t) => t.projectId === projectId);
+      this.notify();
+    }
+
+    return { phases: projPhases, towers: projTowers };
+  }
+
+  // Validation method to verify parent-child relational integrity
+  public validateHierarchy(
+    builderId: string,
+    projectId: string,
+    phaseId?: string,
+    towerId?: string
+  ): { valid: boolean; reason?: string } {
+    if (!builderId) return { valid: false, reason: 'Builder is not selected.' };
+    if (!projectId) return { valid: false, reason: 'Project is not selected.' };
+
+    const project = this.getProjectById(projectId);
+    if (!project) return { valid: false, reason: `Project with ID ${projectId} does not exist.` };
+    if (project.builderId !== builderId) {
+      return { valid: false, reason: `Project "${project.projectName}" does not belong to the selected Builder.` };
+    }
+
+    if (phaseId && phaseId !== 'PHS-DEFAULT') {
+      const phase = this.getPhaseById(phaseId);
+      if (!phase) return { valid: false, reason: `Phase with ID ${phaseId} does not exist.` };
+      if (phase.projectId !== projectId) {
+        return { valid: false, reason: `Phase "${phase.phaseName}" does not belong to Project "${project.projectName}".` };
+      }
+    }
+
+    if (towerId) {
+      const tower = this.getTowerById(towerId);
+      if (!tower) return { valid: false, reason: `Tower with ID ${towerId} does not exist.` };
+      if (tower.projectId !== projectId) {
+        return { valid: false, reason: `Tower "${tower.towerName}" does not belong to Project "${project.projectName}".` };
+      }
+      if (phaseId && phaseId !== 'PHS-DEFAULT' && tower.phaseId && tower.phaseId !== phaseId) {
+        return { valid: false, reason: `Tower "${tower.towerName}" is not linked to the selected Phase.` };
+      }
+    }
+
+    return { valid: true };
+  }
+
+  // --- Reset to System Defaults ---
+  public resetMasterData() {
     localStorage.removeItem(STORAGE_KEY_MASTERS);
     localStorage.removeItem(STORAGE_KEY_AUDIT);
     this.seedInitialMasters();
+    this.repairHierarchy();
     this.auditTrail = this.seedAuditTrail();
     this.saveMasters();
     this.saveAudit();
@@ -1837,4 +2117,8 @@ registerMasterStoreResolvers({
   getBuilders: () => masterStore.getBuilders(),
   getProjectById: (id: string) => masterStore.getProjectById(id),
   getProjectsByBuilder: (builderId: string) => masterStore.getProjects({ builderId }),
+  getPhasesByProject: (projectId: string) => masterStore.getPhases({ projectId }),
+  getTowersByProject: (projectId: string) => masterStore.getTowers({ projectId }),
+  getTowersByPhase: (phaseId: string) => masterStore.getTowers({ phaseId }),
+  getUnitsByTower: (towerId: string) => masterStore.getUnits({ towerId }),
 });

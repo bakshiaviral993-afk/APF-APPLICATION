@@ -39,6 +39,8 @@ export const App: React.FC = () => {
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   const [selectedProjectIdForTowers, setSelectedProjectIdForTowers] = useState<string | undefined>(undefined);
   const [selectedBuilderIdForExposure, setSelectedBuilderIdForExposure] = useState<string>('BLD-PUN-001');
+  const [initiateApfBuilderId, setInitiateApfBuilderId] = useState<string | undefined>(undefined);
+  const [initiateApfProjectId, setInitiateApfProjectId] = useState<string | undefined>(undefined);
   const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
   const [isGlobalApprovalsModalOpen, setIsGlobalApprovalsModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -60,11 +62,15 @@ export const App: React.FC = () => {
 
   const handleBackToDashboard = () => {
     setActiveCaseId(null);
+    setInitiateApfBuilderId(undefined);
+    setInitiateApfProjectId(undefined);
     setActiveView('DASHBOARD');
   };
 
   const handleCaseCreated = (createdCase: any) => {
     setIsNewCaseModalOpen(false);
+    setInitiateApfBuilderId(undefined);
+    setInitiateApfProjectId(undefined);
     const cId = typeof createdCase === 'string' ? createdCase : createdCase.id;
     handleOpenCase(cId);
   };
@@ -73,6 +79,8 @@ export const App: React.FC = () => {
     apfStore.logout();
     setCurrentUser(null);
     setActiveCaseId(null);
+    setInitiateApfBuilderId(undefined);
+    setInitiateApfProjectId(undefined);
     setActiveView('DASHBOARD');
   };
 
@@ -188,6 +196,8 @@ export const App: React.FC = () => {
           ) : activeView === 'INITIATE_APF' ? (
             <InitiateAPFPage
               currentUser={currentUser}
+              initialBuilderId={initiateApfBuilderId}
+              initialProjectId={initiateApfProjectId}
               onBack={handleBackToDashboard}
               onCaseCreated={handleCaseCreated}
             />
@@ -217,7 +227,9 @@ export const App: React.FC = () => {
                   if (builderId) setSelectedBuilderIdForExposure(builderId);
                   setActiveView('EXPOSURE');
                 }}
-                onStartApfTransaction={(_builderId, _projectId) => {
+                onStartApfTransaction={(builderId, projectId) => {
+                  setInitiateApfBuilderId(builderId);
+                  setInitiateApfProjectId(projectId);
                   setActiveView('INITIATE_APF');
                 }}
               />
@@ -239,7 +251,9 @@ export const App: React.FC = () => {
                   if (builderId) setSelectedBuilderIdForExposure(builderId);
                   setActiveView('EXPOSURE');
                 }}
-                onStartApfTransaction={(_builderId, _projectId) => {
+                onStartApfTransaction={(builderId, projectId) => {
+                  setInitiateApfBuilderId(builderId);
+                  setInitiateApfProjectId(projectId);
                   setActiveView('INITIATE_APF');
                 }}
               />

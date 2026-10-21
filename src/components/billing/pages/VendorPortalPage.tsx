@@ -103,7 +103,7 @@ export const VendorPortalPage: React.FC<VendorPortalPageProps> = ({
           </div>
         </div>
 
-        {/* Demo Vendor Switcher Dropdown */}
+        {/* Quick Vendor Switcher Dropdown */}
         <div className="flex items-center gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700 text-xs">
           <span className="text-slate-400 px-2">Simulate Vendor:</span>
           <select

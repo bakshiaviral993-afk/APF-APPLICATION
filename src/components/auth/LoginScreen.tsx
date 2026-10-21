@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { apfStore } from '../../services/apfStore';
-import { DemoCredentialsModal } from './DemoCredentialsModal';
+import { CredentialsModal } from './CredentialsModal';
 import {
   ShieldCheck,
   Lock,
@@ -28,13 +28,13 @@ export type PortalType = 'BANK' | 'VALUER' | 'LEGAL';
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [selectedPortal, setSelectedPortal] = useState<PortalType>('BANK');
   const [username, setUsername] = useState('cpa01');
-  const [password, setPassword] = useState('Demo@123');
+  const [password, setPassword] = useState('Secure@123');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Modals
-  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
   const [forgotPasswordSubmitted, setForgotPasswordSubmitted] = useState(false);
@@ -45,13 +45,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     setError(null);
     if (portal === 'BANK') {
       setUsername('cpa01');
-      setPassword('Demo@123');
+      setPassword('Secure@123');
     } else if (portal === 'VALUER') {
       setUsername('valuer.ext01');
-      setPassword('Demo@123');
+      setPassword('Secure@123');
     } else if (portal === 'LEGAL') {
       setUsername('legal.ext01');
-      setPassword('Demo@123');
+      setPassword('Secure@123');
     }
   };
 
@@ -67,13 +67,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleSelectDemoPersona = (usr: string, portal: 'BANK' | 'VALUER' | 'LEGAL') => {
+  const handleSelectPersona = (usr: string, portal: 'BANK' | 'VALUER' | 'LEGAL') => {
     setSelectedPortal(portal);
     setUsername(usr);
-    setPassword('Demo@123');
-    setIsDemoModalOpen(false);
+    setPassword('Secure@123');
+    setIsCredentialsModalOpen(false);
     setError(null);
-    const res = apfStore.login(usr, 'Demo@123');
+    const res = apfStore.login(usr, 'Secure@123');
     if (res.success) {
       onLoginSuccess();
     }
@@ -98,11 +98,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <span>Need Help?</span>
           </button>
           <button
-            onClick={() => setIsDemoModalOpen(true)}
+            onClick={() => setIsCredentialsModalOpen(true)}
             className="inline-flex items-center gap-1 text-[#1667C1] hover:text-[#0B1F33] font-semibold transition-colors cursor-pointer"
           >
             <KeyRound className="w-3.5 h-3.5 text-sky-600" />
-            <span>Demo Credentials</span>
+            <span>Quick Credentials</span>
           </button>
         </div>
       </header>
@@ -270,15 +270,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </button>
             </form>
 
-            {/* Quiet Demo Link */}
+            {/* Quick Access Link */}
             <div className="pt-4 border-t border-[#DCE3EB] text-center">
               <button
                 type="button"
-                onClick={() => setIsDemoModalOpen(true)}
+                onClick={() => setIsCredentialsModalOpen(true)}
                 className="text-xs font-medium text-[#667085] hover:text-[#1667C1] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <KeyRound className="w-3.5 h-3.5 text-slate-400" />
-                <span>Need test credentials? <strong className="text-[#1667C1] font-semibold underline">Access Demo Personas</strong></span>
+                <span>Need test credentials? <strong className="text-[#1667C1] font-semibold underline">Access User Personas</strong></span>
               </button>
             </div>
           </div>
@@ -312,11 +312,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         </div>
       </footer>
 
-      {/* Demo Credentials Modal */}
-      <DemoCredentialsModal
-        isOpen={isDemoModalOpen}
-        onClose={() => setIsDemoModalOpen(false)}
-        onSelectPersona={handleSelectDemoPersona}
+      {/* User Credentials Modal */}
+      <CredentialsModal
+        isOpen={isCredentialsModalOpen}
+        onClose={() => setIsCredentialsModalOpen(false)}
+        onSelectPersona={handleSelectPersona}
         defaultPortal={selectedPortal}
       />
 

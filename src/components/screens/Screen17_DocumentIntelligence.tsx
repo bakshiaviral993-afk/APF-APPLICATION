@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAPF } from '../../context/APFContext';
 import { FileSearch, Upload, FileText, CheckCircle2, ChevronRight, Eye } from 'lucide-react';
-import { DEMO_DOCUMENTS, DemoDocument } from '../../data/mockData';
+import { SAMPLE_DOCUMENTS, SampleDocument } from '../../data/mockData';
 
 export const Screen17_DocumentIntelligence: React.FC = () => {
   const { setCurrentScreen, setActiveEvidence } = useAPF();
@@ -32,7 +32,7 @@ export const Screen17_DocumentIntelligence: React.FC = () => {
       <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-white">Ingested Document Repository</h3>
-          <span className="text-xs text-slate-400">{DEMO_DOCUMENTS.length} Documents Processed</span>
+          <span className="text-xs text-slate-400">{SAMPLE_DOCUMENTS.length} Documents Processed</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -49,7 +49,7 @@ export const Screen17_DocumentIntelligence: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 bg-slate-900/40">
-              {DEMO_DOCUMENTS.map((doc: DemoDocument) => (
+              {SAMPLE_DOCUMENTS.map((doc: SampleDocument) => (
                 <tr key={doc.id} className="hover:bg-slate-800/40">
                   <td className="py-2.5 px-3 font-semibold text-white flex items-center gap-2">
                     <FileText className="w-4 h-4 text-indigo-400 shrink-0" />

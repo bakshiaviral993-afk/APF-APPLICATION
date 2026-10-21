@@ -97,6 +97,16 @@ export const InternalValuerDashboardView: React.FC<InternalValuerDashboardViewPr
       actionLabel: 'Open 12-Step Inspection',
       onAction: () => onNavigateToModule('VALUATION_MODULE'),
     },
+    {
+      id: 'VAL-P-PHOTO',
+      type: 'APPROVAL_PENDING',
+      title: 'Site Visit Photo Documentation Required',
+      description: 'Upload on-site physical inspection evidence with timestamped forensic stamps for assigned projects.',
+      severity: 'info',
+      count: siteVisitsDueCount,
+      actionLabel: 'Open Valuations',
+      onAction: () => onNavigateToModule('VALUATION_MODULE'),
+    },
   ];
 
   // Charts

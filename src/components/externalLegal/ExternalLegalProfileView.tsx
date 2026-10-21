@@ -35,7 +35,7 @@ export const ExternalLegalProfileView: React.FC<ExternalLegalProfileViewProps> =
       userId: 'legalfirm.admin01',
       barNumber: 'MAH/1820/2005',
       experience: '21 Years',
-      email: 'sanjay.trivedi@demolegal.in',
+      email: 'sanjay.trivedi@apexlegal.in',
       mobile: '+91 98220 18492',
       status: 'ACTIVE',
       lastLogin: 'Today, 09:15 AM',
@@ -47,7 +47,7 @@ export const ExternalLegalProfileView: React.FC<ExternalLegalProfileViewProps> =
       userId: 'legal.ext01',
       barNumber: 'MAH/4921/2012',
       experience: '14 Years',
-      email: 'ananya.deshmukh@demolegal.in',
+      email: 'ananya.deshmukh@apexlegal.in',
       mobile: '+91 98221 44021',
       status: 'ACTIVE',
       lastLogin: 'Active Now',
@@ -59,7 +59,7 @@ export const ExternalLegalProfileView: React.FC<ExternalLegalProfileViewProps> =
       userId: 'legalfirm.user01',
       barNumber: 'MAH/7391/2018',
       experience: '8 Years',
-      email: 'siddharth.kulkarni@demolegal.in',
+      email: 'siddharth.kulkarni@apexlegal.in',
       mobile: '+91 94220 55198',
       status: 'ACTIVE',
       lastLogin: 'Yesterday, 04:30 PM',
@@ -71,7 +71,7 @@ export const ExternalLegalProfileView: React.FC<ExternalLegalProfileViewProps> =
       userId: 'legalfirm.user02',
       barNumber: 'MAH/8920/2020',
       experience: '6 Years',
-      email: 'priya.nair@demolegal.in',
+      email: 'priya.nair@apexlegal.in',
       mobile: '+91 98229 01842',
       status: 'ACTIVE',
       lastLogin: '02-Oct-2026',
@@ -129,7 +129,7 @@ export const ExternalLegalProfileView: React.FC<ExternalLegalProfileViewProps> =
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base font-bold text-[#172033]">
-                {currentUser.firmName || 'Demo Legal Associates'}
+                {currentUser.firmName || 'Apex Legal Associates'}
               </h1>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 text-emerald-600" /> Empanelled Tier-1 Legal Partner
@@ -218,7 +218,7 @@ export const ExternalLegalProfileView: React.FC<ExternalLegalProfileViewProps> =
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase">Legal Entity Name</span>
-                    <span className="font-semibold text-slate-800">Demo Legal Associates LLP</span>
+                    <span className="font-semibold text-slate-800">Apex Legal Associates LLP</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase">Registration Type</span>
@@ -250,7 +250,7 @@ export const ExternalLegalProfileView: React.FC<ExternalLegalProfileViewProps> =
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>contact@demolegal.in / rohan.admin@demolegal.in</span>
+                    <span>contact@apexlegal.in / rohan.admin@apexlegal.in</span>
                   </div>
                 </div>
               </div>
@@ -350,7 +350,7 @@ export const ExternalLegalProfileView: React.FC<ExternalLegalProfileViewProps> =
                   <span className="text-[10px] text-slate-500 uppercase font-medium block">
                     Account Beneficiary
                   </span>
-                  <span className="font-semibold text-slate-900">Demo Legal Associates LLP</span>
+                  <span className="font-semibold text-slate-900">Apex Legal Associates LLP</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase font-medium block">

@@ -16,13 +16,14 @@ import {
   BankValuationReportData,
 } from '../types/apfTransaction';
 import {
-  DEMO_USERS,
+  SYSTEM_USERS,
   CENTRAL_BUILDER_MASTER,
   CENTRAL_PROJECT_MASTER,
   CENTRAL_TOWER_MASTER,
   CENTRAL_PHASE_MASTER,
 } from '../data/centralMasterData';
-import { demoExposureService } from './demoExposureService';
+import { exposureReconciliationService } from './builderExposureService';
+import { ValuationPhotoEvidence } from '../types/valuationCatalogue';
 
 export type GeofenceAlertDispatcher = (params: {
   caseId: string;
@@ -55,7 +56,7 @@ export interface RecordValuerPinResult {
 const STORAGE_KEY_CASES = 'PROVAL_APF_CASES_V3';
 const STORAGE_KEY_AUTH = 'PROVAL_APF_CURRENT_USER_V3';
 
-// Initial Seed: 1 Baseline Scripted Demo Case (Life Republic – i Towers)
+// Initial Seed: 1 Baseline Scripted Case (Life Republic – i Towers)
 // Notice: IT STARTS AT 'INITIATED' so the presenter or CPA can assign the valuer live,
 // OR they can click "+ New APF Case" to start a 100% fresh case!
 export const INITIAL_SEED_CASES: APFCase[] = [
@@ -276,7 +277,7 @@ class APFTransactionStore {
         this.currentUser = JSON.parse(savedAuth);
       } else {
         // Default to CPA user for quick start
-        this.currentUser = DEMO_USERS['cpa01'];
+        this.currentUser = SYSTEM_USERS['cpa01'];
       }
 
       const savedCases = localStorage.getItem(STORAGE_KEY_CASES);
@@ -289,7 +290,7 @@ class APFTransactionStore {
     } catch (e) {
       console.error('Failed to load APF store:', e);
       this.cases = JSON.parse(JSON.stringify(INITIAL_SEED_CASES));
-      this.currentUser = DEMO_USERS['cpa01'];
+      this.currentUser = SYSTEM_USERS['cpa01'];
     }
   }
 
@@ -319,12 +320,12 @@ class APFTransactionStore {
   }
 
   public login(username: string, passwordHash: string): { success: boolean; error?: string } {
-    const user = DEMO_USERS[username.trim().toLowerCase()];
+    const user = SYSTEM_USERS[username.trim().toLowerCase()];
     if (!user) {
-      return { success: false, error: 'Invalid username. Try demo credentials e.g. cpa01, valuer.ext01, com01' };
+      return { success: false, error: 'Invalid username. Try test credentials e.g. cpa01, valuer.ext01, com01' };
     }
     if (user.passwordHash !== passwordHash) {
-      return { success: false, error: 'Invalid password. (Default is Demo@123)' };
+      return { success: false, error: 'Invalid password. (Default is Secure@123)' };
     }
 
     const { passwordHash: _, ...authAccount } = user;
@@ -335,7 +336,7 @@ class APFTransactionStore {
   }
 
   public quickSwitchUser(username: string): void {
-    const user = DEMO_USERS[username.trim().toLowerCase()];
+    const user = SYSTEM_USERS[username.trim().toLowerCase()];
     if (user) {
       const { passwordHash: _, ...authAccount } = user;
       this.currentUser = authAccount;
@@ -359,7 +360,7 @@ class APFTransactionStore {
     return this.cases.find((c) => c.id === id);
   }
 
-  public resetDemoData(): void {
+  public resetCaseData(): void {
     this.cases = JSON.parse(JSON.stringify(INITIAL_SEED_CASES));
     this.saveCases();
   }
@@ -379,7 +380,7 @@ class APFTransactionStore {
     requestedRetailSourcingLimitCr: number;
     priority: 'High' | 'Standard' | 'Urgent';
   }): APFCase {
-    const user = this.currentUser || DEMO_USERS['cpa01'];
+    const user = this.currentUser || SYSTEM_USERS['cpa01'];
     const caseSeq = (this.cases.length + 1).toString().padStart(4, '0');
     const newCaseId = `APF-2026-${caseSeq}`;
 
@@ -426,7 +427,7 @@ class APFTransactionStore {
   public assignValuer(caseId: string, assignment: ValuerAssignmentDetails): boolean {
     const c = this.getCaseById(caseId);
     if (!c) return false;
-    const user = this.currentUser || DEMO_USERS['cpa01'];
+    const user = this.currentUser || SYSTEM_USERS['cpa01'];
 
     c.valuerAssignment = assignment;
     c.currentStatus = 'ASSIGNED_TO_VALUER';
@@ -684,6 +685,196 @@ class APFTransactionStore {
     return { success: true, message: 'Location verified and pinned successfully within project boundary.' };
   }
 
+  // 4b. Valuer: Upload & Manage Site Visit Photos
+  public addSiteVisitPhoto(caseId: string, photo: ValuationPhotoEvidence): boolean {
+    const c = this.getCaseById(caseId);
+    if (!c) return false;
+    const user = this.currentUser || { name: photo.capturedBy || 'Assigned Valuer', role: 'EXTERNAL_VALUER' as const };
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    if (!c.siteVisitEvidence) {
+      c.siteVisitEvidence = [];
+    }
+
+    // Add to siteVisitEvidence
+    const evidenceItem: SiteVisitEvidence = {
+      id: photo.id,
+      category: photo.category,
+      title: photo.title,
+      timestamp: photo.timestamp || now,
+      lat: photo.lat,
+      lng: photo.lng,
+      accuracyMeters: photo.accuracyMeters,
+      isInsideGeofence: photo.isInsideGeofence,
+      capturedBy: photo.capturedBy || user.name,
+      deviceSessionId: photo.deviceSessionId || 'VAL-MOB-SESSION',
+      notes: photo.notes,
+      photoUrl: photo.photoUrl,
+      towerId: photo.towerId,
+      towerName: photo.towerName,
+      fileSizeKb: photo.fileSizeKb,
+      dimensions: photo.dimensions,
+    };
+
+    c.siteVisitEvidence.unshift(evidenceItem);
+
+    // Also sync into detailedValuationReport / bankValuationReport if initialized
+    if (c.detailedValuationReport) {
+      if (!c.detailedValuationReport.photos) {
+        c.detailedValuationReport.photos = [];
+      }
+      const existingIdx = c.detailedValuationReport.photos.findIndex((p) => p.id === photo.id);
+      if (existingIdx >= 0) {
+        c.detailedValuationReport.photos[existingIdx] = photo;
+      } else {
+        c.detailedValuationReport.photos.unshift(photo);
+      }
+    }
+    if (c.bankValuationReport) {
+      if (!c.bankValuationReport.photos) {
+        c.bankValuationReport.photos = [];
+      }
+      const existingIdx = c.bankValuationReport.photos.findIndex((p) => p.id === photo.id);
+      if (existingIdx >= 0) {
+        c.bankValuationReport.photos[existingIdx] = photo;
+      } else {
+        c.bankValuationReport.photos.unshift(photo);
+      }
+    }
+
+    // If case is in VALUER_ACCEPTED, automatically advance to SITE_VISIT_IN_PROGRESS
+    const priorStatus = c.currentStatus;
+    if (c.currentStatus === 'VALUER_ACCEPTED') {
+      c.currentStatus = 'SITE_VISIT_IN_PROGRESS';
+    }
+
+    c.auditTrail.unshift({
+      id: `EVT-PHOTO-${Date.now()}`,
+      timestamp: now,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'SITE_VISIT_PHOTO_UPLOADED',
+      priorStatus: priorStatus,
+      newStatus: c.currentStatus,
+      remarks: `Site visit evidence photo captured: "${photo.title}" [${photo.category}]. Tower: ${photo.towerName || 'General Site'}. GPS Coordinates: [${photo.lat.toFixed(5)}, ${photo.lng.toFixed(5)}]. Geofence: ${photo.isInsideGeofence ? 'VERIFIED_INSIDE' : 'OFFSITE_EXCEPTION'}.`,
+      deviceInfo: photo.deviceSessionId || 'Valuer Mobile Inspection Camera Engine',
+    });
+
+    this.saveCases();
+    this.notify();
+    return true;
+  }
+
+  public deleteSiteVisitPhoto(caseId: string, photoId: string): boolean {
+    const c = this.getCaseById(caseId);
+    if (!c) return false;
+    const user = this.currentUser || { name: 'Assigned Valuer', role: 'EXTERNAL_VALUER' as const };
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    if (c.siteVisitEvidence) {
+      c.siteVisitEvidence = c.siteVisitEvidence.filter((p) => p.id !== photoId);
+    }
+    if (c.detailedValuationReport?.photos) {
+      c.detailedValuationReport.photos = c.detailedValuationReport.photos.filter((p) => p.id !== photoId);
+    }
+    if (c.bankValuationReport?.photos) {
+      c.bankValuationReport.photos = c.bankValuationReport.photos.filter((p) => p.id !== photoId);
+    }
+
+    c.auditTrail.unshift({
+      id: `EVT-PHOTO-DEL-${Date.now()}`,
+      timestamp: now,
+      actorName: user.name,
+      actorRole: user.role,
+      action: 'SITE_VISIT_PHOTO_REMOVED',
+      priorStatus: c.currentStatus,
+      newStatus: c.currentStatus,
+      remarks: `Site visit photographic evidence record (${photoId}) removed from technical valuation docket.`,
+      deviceInfo: 'Valuer Portal Photographic Evidence Module',
+    });
+
+    this.saveCases();
+    this.notify();
+    return true;
+  }
+
+  public getSiteVisitPhotos(caseId: string): ValuationPhotoEvidence[] {
+    const c = this.getCaseById(caseId);
+    if (!c) return [];
+
+    // Prioritize detailedValuationReport.photos if available, otherwise map from siteVisitEvidence
+    if (c.detailedValuationReport?.photos && c.detailedValuationReport.photos.length > 0) {
+      return c.detailedValuationReport.photos;
+    }
+
+    if (c.siteVisitEvidence && c.siteVisitEvidence.length > 0) {
+      return c.siteVisitEvidence.map((ev) => ({
+        id: ev.id,
+        category: ev.category,
+        title: ev.title,
+        timestamp: ev.timestamp,
+        lat: ev.lat,
+        lng: ev.lng,
+        accuracyMeters: ev.accuracyMeters,
+        isInsideGeofence: ev.isInsideGeofence,
+        capturedBy: ev.capturedBy,
+        valuerId: 'VAL-01',
+        deviceSessionId: ev.deviceSessionId,
+        notes: ev.notes,
+        photoUrl: ev.photoUrl,
+        towerId: ev.towerId,
+        towerName: ev.towerName,
+        fileSizeKb: ev.fileSizeKb,
+        dimensions: ev.dimensions,
+        evidenceId: `EVID-${ev.id}`,
+      }));
+    }
+
+    return [];
+  }
+
+  public updateSiteVisitPhotos(caseId: string, photos: ValuationPhotoEvidence[]): boolean {
+    const c = this.getCaseById(caseId);
+    if (!c) return false;
+
+    if (!c.detailedValuationReport) {
+      c.detailedValuationReport = {
+        photos: [],
+      } as any;
+    }
+
+    if (c.detailedValuationReport) {
+      c.detailedValuationReport.photos = [...photos];
+    }
+    if (c.bankValuationReport) {
+      c.bankValuationReport.photos = [...photos];
+    }
+
+    // Sync to siteVisitEvidence
+    c.siteVisitEvidence = photos.map((ph) => ({
+      id: ph.id,
+      category: ph.category,
+      title: ph.title,
+      timestamp: ph.timestamp,
+      lat: ph.lat,
+      lng: ph.lng,
+      accuracyMeters: ph.accuracyMeters,
+      isInsideGeofence: ph.isInsideGeofence,
+      capturedBy: ph.capturedBy,
+      deviceSessionId: ph.deviceSessionId,
+      notes: ph.notes,
+      photoUrl: ph.photoUrl,
+      towerId: ph.towerId,
+      towerName: ph.towerName,
+      fileSizeKb: ph.fileSizeKb,
+      dimensions: ph.dimensions,
+    }));
+
+    this.saveCases();
+    this.notify();
+    return true;
+  }
+
   // Review Geofence Breach (By COM, ACOM, or Approver)
   public reviewGeofenceBreach(
     caseId: string,
@@ -749,10 +940,10 @@ class APFTransactionStore {
     // Generate refreshed Exposure 360 immediately upon report submission!
     c.exposureSnapshot = this.generateExposureSnapshot(c, report.adoptedBaseRateSqFt);
     try {
-      // Freeze immutable snapshot in DemoExposureService for audit compliance
-      demoExposureService.createOrFreezeSnapshot(c.builderId, c.id, `${user.name} (${user.role})`);
+      // Freeze immutable snapshot in ExposureService for audit compliance
+      exposureReconciliationService.createOrFreezeSnapshot(c.builderId, c.id, `${user.name} (${user.role})`);
     } catch (e) {
-      console.warn('Could not freeze snapshot in demoExposureService', e);
+      console.warn('Could not freeze snapshot in exposureReconciliationService', e);
     }
 
     c.auditTrail.unshift({
@@ -931,7 +1122,7 @@ class APFTransactionStore {
       riskBand: 'Low (Tier 1 Builder)',
       approvalConditions: c.approvalDecision?.conditions.map((cd) => cd.conditionText) || [],
       exposureSnapshotId:
-        demoExposureService.getLatestSnapshotForBuilder(c.builderId)?.snapshotId ||
+        exposureReconciliationService.getLatestSnapshotForBuilder(c.builderId)?.snapshotId ||
         c.exposureSnapshot?.snapshotId ||
         `EXPO-SNAP-${c.builderId}-001`,
       documentRefs: [
@@ -997,7 +1188,7 @@ class APFTransactionStore {
   public updateCaseStatus(caseId: string, newStatus: CaseStatus, remarks?: string): boolean {
     const c = this.getCaseById(caseId);
     if (!c) return false;
-    const user = this.currentUser || DEMO_USERS['cpa01'];
+    const user = this.currentUser || SYSTEM_USERS['cpa01'];
     const priorStatus = c.currentStatus;
 
     c.currentStatus = newStatus;

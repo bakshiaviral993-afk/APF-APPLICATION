@@ -1,12 +1,12 @@
 import React from 'react';
 import { useAPF } from '../../context/APFContext';
 import { FileSpreadsheet, AlertTriangle, ShieldCheck, ChevronRight, ExternalLink } from 'lucide-react';
-import { DEMO_EXPOSURE_SOURCES } from '../../data/mockData';
+import { SAMPLE_EXPOSURE_SOURCES } from '../../data/mockData';
 
 export const Screen06_ExternalExposure: React.FC = () => {
   const { setCurrentScreen, setActiveEvidence } = useAPF();
 
-  const bureauRecords = DEMO_EXPOSURE_SOURCES.filter(
+  const bureauRecords = SAMPLE_EXPOSURE_SOURCES.filter(
     (s) => s.sourceSystem === 'CIBIL / CRILC' || s.lenderName.includes('Piramal') || s.lenderName.includes('SBI')
   );
 

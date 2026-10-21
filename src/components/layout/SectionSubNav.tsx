@@ -19,7 +19,7 @@ interface ScreenMeta {
   id: ScreenId;
   title: string;
   badge?: string;
-  isKeyDemo?: boolean;
+  isKeyHighlight?: boolean;
 }
 
 interface SectionNavConfig {
@@ -33,7 +33,7 @@ const SECTION_CONFIGS: Record<string, SectionNavConfig> = {
     sectionId: 'control-tower',
     sectionLabel: 'Control Tower',
     screens: [
-      { id: '01', title: 'Executive Control Tower', isKeyDemo: true },
+      { id: '01', title: 'Executive Control Tower', isKeyHighlight: true },
       { id: 'flow', title: 'End-to-End APF Flow (10 Projects)', badge: 'Interactive' },
     ],
   },
@@ -41,10 +41,10 @@ const SECTION_CONFIGS: Record<string, SectionNavConfig> = {
     sectionId: 'builders',
     sectionLabel: 'Builders',
     screens: [
-      { id: '03', title: 'Builder 360', isKeyDemo: true },
-      { id: '02', title: 'Search & Onboarding', isKeyDemo: true },
+      { id: '03', title: 'Builder 360', isKeyHighlight: true },
+      { id: '02', title: 'Search & Onboarding', isKeyHighlight: true },
       { id: '04', title: 'Promoter 360' },
-      { id: '05', title: 'Group Structure Graph', isKeyDemo: true },
+      { id: '05', title: 'Group Structure Graph', isKeyHighlight: true },
       { id: '09', title: 'Financial Intelligence' },
       { id: '10', title: 'Builder Risk Score' },
     ],
@@ -53,8 +53,8 @@ const SECTION_CONFIGS: Record<string, SectionNavConfig> = {
     sectionId: 'projects',
     sectionLabel: 'Projects',
     screens: [
-      { id: '12', title: 'Project 360 (Alpha Towers)', isKeyDemo: true },
-      { id: '15', title: 'Tower Exposure Heatmap', isKeyDemo: true },
+      { id: '12', title: 'Project 360 (Alpha Towers)', isKeyHighlight: true },
+      { id: '15', title: 'Tower Exposure Heatmap', isKeyHighlight: true },
       { id: '11', title: 'Project Registration' },
       { id: '13', title: 'Project Finance Exposure' },
       { id: '14', title: 'Phase & Tower Master' },
@@ -65,7 +65,7 @@ const SECTION_CONFIGS: Record<string, SectionNavConfig> = {
     sectionId: 'exposure',
     sectionLabel: 'Exposure',
     screens: [
-      { id: '07', title: 'Exposure Reconciliation', badge: '₹42 Cr Discrepancy', isKeyDemo: true },
+      { id: '07', title: 'Exposure Reconciliation', badge: '₹42 Cr Discrepancy', isKeyHighlight: true },
       { id: '06', title: 'External Credit Exposure (CIC/CRILC)' },
       { id: '08', title: 'MCA Charge Intelligence' },
       { id: '15', title: 'Tower Heatmap' },
@@ -88,7 +88,7 @@ const SECTION_CONFIGS: Record<string, SectionNavConfig> = {
     sectionId: 'risk-ai',
     sectionLabel: 'Risk & AI',
     screens: [
-      { id: '25', title: 'AI Underwriter Workspace', badge: 'Evidence-First', isKeyDemo: true },
+      { id: '25', title: 'AI Underwriter Workspace', badge: 'Evidence-First', isKeyHighlight: true },
       { id: '24', title: 'Risk Engine (Weighted Model)' },
     ],
   },
@@ -96,15 +96,15 @@ const SECTION_CONFIGS: Record<string, SectionNavConfig> = {
     sectionId: 'committee',
     sectionLabel: 'Committee',
     screens: [
-      { id: '26', title: 'Committee Decision Cockpit', isKeyDemo: true },
-      { id: '27', title: 'Approval & Conditions Maker-Checker', isKeyDemo: true },
+      { id: '26', title: 'Committee Decision Cockpit', isKeyHighlight: true },
+      { id: '27', title: 'Approval & Conditions Maker-Checker', isKeyHighlight: true },
     ],
   },
   monitoring: {
     sectionId: 'monitoring',
     sectionLabel: 'Monitoring',
     screens: [
-      { id: '28', title: 'Monitoring & Early Warning (EWS)', isKeyDemo: true },
+      { id: '28', title: 'Monitoring & Early Warning (EWS)', isKeyHighlight: true },
       { id: '29', title: 'Renewal & Suspension Workspace' },
     ],
   },
@@ -203,9 +203,9 @@ export const SectionSubNav: React.FC = () => {
           })}
         </div>
 
-        {/* Right: Role Switcher & Quick Demo Tour button */}
+        {/* Right: Role Switcher & Quick Platform Tour button */}
         <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
-          {/* 20-min POC Demo Tour button */}
+          {/* 20-min Bank Transaction Walkthrough button */}
           <button
             onClick={() => setIsTourOpen(!isTourOpen)}
             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs ${
@@ -213,7 +213,7 @@ export const SectionSubNav: React.FC = () => {
                 ? 'bg-indigo-900 text-white border border-indigo-700'
                 : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'
             }`}
-            title="Toggle 20-Minute Bank POC Demo Script Walkthrough"
+            title="Toggle 20-Minute Bank Transaction Walkthrough"
           >
             <Compass className="w-3.5 h-3.5 text-indigo-600" />
             <span className="hidden sm:inline">20-Min POC Script</span>

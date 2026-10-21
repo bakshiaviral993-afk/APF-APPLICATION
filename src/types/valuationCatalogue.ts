@@ -57,8 +57,20 @@ export interface RiskExceptionRecord {
 
 export interface ValuationPhotoEvidence {
   id: string;
-  category: 'Project Entrance' | 'RERA Board' | 'Assigned Tower' | 'Construction Progress' | 'Approach Road' | 'Surroundings' | 'Amenities' | 'Deviation Evidence';
+  category:
+    | 'Project Entrance'
+    | 'RERA Board'
+    | 'Assigned Tower'
+    | 'Construction Progress'
+    | 'Approach Road'
+    | 'Surroundings'
+    | 'Amenities'
+    | 'Internal Unit / Sample Flat'
+    | 'Safety & Machinery'
+    | 'Deviation Evidence'
+    | string;
   towerId?: string;
+  towerName?: string;
   title: string;
   timestamp: string;
   lat: number;
@@ -71,6 +83,8 @@ export interface ValuationPhotoEvidence {
   notes: string;
   photoUrl?: string;
   evidenceId: string;
+  fileSizeKb?: number;
+  dimensions?: string;
 }
 
 export interface BankValuationReportData {

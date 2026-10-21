@@ -46,7 +46,7 @@ export const ExternalLegalBillingView: React.FC<ExternalLegalBillingViewProps> =
   const [baseFee, setBaseFee] = useState(35000);
   const [cgst, setCgst] = useState(3150);
   const [sgst, setSgst] = useState(3150);
-  const [invoiceDocName, setInvoiceDocName] = useState('Tax_Invoice_DemoLegal_001.pdf');
+  const [invoiceDocName, setInvoiceDocName] = useState('Tax_Invoice_ApexLegal_001.pdf');
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
   // Fetch only this vendor's data (VND-LEGAL-001 or VND-LEG-002)
@@ -116,7 +116,7 @@ export const ExternalLegalBillingView: React.FC<ExternalLegalBillingViewProps> =
               Legal Advocate Billing & Fee Settlements
             </h1>
             <p className="text-xs text-[#667085] mt-0.5 flex items-center gap-2">
-              <span>Vendor: {currentUser.firmName || 'Demo Legal Associates'}</span>
+              <span>Vendor: {currentUser.firmName || 'Apex Legal Associates'}</span>
               <span>•</span>
               <span className="font-mono text-slate-700">Vendor ID: {vendorId}</span>
               <span>•</span>
@@ -457,7 +457,7 @@ export const ExternalLegalBillingView: React.FC<ExternalLegalBillingViewProps> =
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Law Firm:</span>
-                  <span className="font-medium text-slate-800">{currentUser.firmName || 'Demo Legal Associates'}</span>
+                  <span className="font-medium text-slate-800">{currentUser.firmName || 'Apex Legal Associates'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">GSTIN:</span>

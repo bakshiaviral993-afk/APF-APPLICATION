@@ -31,20 +31,20 @@ import {
 import { CENTRAL_BUILDER_MASTER } from '../../data/centralMasterData';
 import { masterStore } from '../../services/masterStore';
 import { BuilderMaster } from '../../types/apfTransaction';
-import { demoExposureService } from '../../services/demoExposureService';
+import { exposureReconciliationService } from '../../services/builderExposureService';
 import { FetchExposureDrawer } from './FetchExposureDrawer';
 import { canAccessExposureReport, ExposureAccessRestrictedCard } from '../../utils/exposurePermissions';
 import {
   BuilderExposureResponse,
   BuilderExposureSummary,
-  DemoLenderFacility,
-  DemoProjectExposure,
-  DemoGroupEntity,
-  DemoSourceFetchStatus,
-  DemoReconciliationItem,
+  ExposureLenderFacility,
+  ExposureProjectDetail,
+  ExposureGroupEntity,
+  ExposureSourceFetchStatus,
+  ExposureReconciliationItem,
   ExposureSnapshot,
-  DemoReconciliationStatus,
-} from '../../types/demoExposureTypes';
+  ExposureReconciliationStatus,
+} from '../../types/builderExposureTypes';
 
 interface BuilderExposure360ReportProps {
   currentUser?: any;
@@ -93,22 +93,22 @@ export const BuilderExposure360Report: React.FC<BuilderExposure360ReportProps> =
 
   // Data states
   const [summary, setSummary] = useState<BuilderExposureSummary>(
-    demoExposureService.getBuilderSummary(selectedBuilderId)
+    exposureReconciliationService.getBuilderSummary(selectedBuilderId)
   );
-  const [facilities, setFacilities] = useState<DemoLenderFacility[]>([]);
-  const [projects, setProjects] = useState<DemoProjectExposure[]>([]);
-  const [groupEntities, setGroupEntities] = useState<DemoGroupEntity[]>([]);
-  const [sources, setSources] = useState<DemoSourceFetchStatus[]>([]);
-  const [reconciliationItems, setReconciliationItems] = useState<DemoReconciliationItem[]>([]);
+  const [facilities, setFacilities] = useState<ExposureLenderFacility[]>([]);
+  const [projects, setProjects] = useState<ExposureProjectDetail[]>([]);
+  const [groupEntities, setGroupEntities] = useState<ExposureGroupEntity[]>([]);
+  const [sources, setSources] = useState<ExposureSourceFetchStatus[]>([]);
+  const [reconciliationItems, setReconciliationItems] = useState<ExposureReconciliationItem[]>([]);
   const [frozenSnapshot, setFrozenSnapshot] = useState<ExposureSnapshot | undefined>(undefined);
 
   // Drilldown states
   const [selectedLenderModal, setSelectedLenderModal] = useState<string | null>(null);
-  const [selectedProjectForTowers, setSelectedProjectForTowers] = useState<DemoProjectExposure | null>(null);
+  const [selectedProjectForTowers, setSelectedProjectForTowers] = useState<ExposureProjectDetail | null>(null);
 
   // Reconciliation reviewer modal
-  const [editingReconItem, setEditingReconItem] = useState<DemoReconciliationItem | null>(null);
-  const [newReconStatus, setNewReconStatus] = useState<DemoReconciliationStatus>('VERIFIED');
+  const [editingReconItem, setEditingReconItem] = useState<ExposureReconciliationItem | null>(null);
+  const [newReconStatus, setNewReconStatus] = useState<ExposureReconciliationStatus>('VERIFIED');
   const [reviewerNotes, setReviewerNotes] = useState('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
@@ -123,13 +123,13 @@ export const BuilderExposure360Report: React.FC<BuilderExposure360ReportProps> =
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
-      const s = demoExposureService.getBuilderSummary(selectedBuilderId);
-      const facs = await demoExposureService.getLenderExposure(selectedBuilderId);
-      const prjs = await demoExposureService.getProjectExposure(selectedBuilderId);
-      const grp = await demoExposureService.getGroupExposure(selectedBuilderId);
-      const srcs = await demoExposureService.getSourceFetchStatuses(selectedBuilderId);
-      const recons = await demoExposureService.getReconciliation(selectedBuilderId);
-      const snap = demoExposureService.getLatestSnapshotForBuilder(selectedBuilderId);
+      const s = exposureReconciliationService.getBuilderSummary(selectedBuilderId);
+      const facs = await exposureReconciliationService.getLenderExposure(selectedBuilderId);
+      const prjs = await exposureReconciliationService.getProjectExposure(selectedBuilderId);
+      const grp = await exposureReconciliationService.getGroupExposure(selectedBuilderId);
+      const srcs = await exposureReconciliationService.getSourceFetchStatuses(selectedBuilderId);
+      const recons = await exposureReconciliationService.getReconciliation(selectedBuilderId);
+      const snap = exposureReconciliationService.getLatestSnapshotForBuilder(selectedBuilderId);
 
       if (isMounted) {
         setSummary(s);
@@ -167,7 +167,7 @@ export const BuilderExposure360Report: React.FC<BuilderExposure360ReportProps> =
 
   const handleSaveReconReview = () => {
     if (!editingReconItem) return;
-    demoExposureService.updateReconciliationItem(
+    exposureReconciliationService.updateReconciliationItem(
       editingReconItem.id,
       newReconStatus,
       reviewerNotes || 'Verified against bank core bureau records.',
@@ -180,7 +180,7 @@ export const BuilderExposure360Report: React.FC<BuilderExposure360ReportProps> =
   };
 
   const handleFreezeCurrentSnapshot = () => {
-    const snap = demoExposureService.createOrFreezeSnapshot(
+    const snap = exposureReconciliationService.createOrFreezeSnapshot(
       selectedBuilderId,
       caseId,
       currentUser?.name || 'Credit Processing Associate (CPA)'
@@ -1073,7 +1073,7 @@ export const BuilderExposure360Report: React.FC<BuilderExposure360ReportProps> =
                     className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
                       src.status === 'FETCHED'
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : src.status === 'DEMO CONNECTED'
+                        : src.status === 'CONNECTED'
                         ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
                         : 'bg-slate-100 text-slate-700'
                     }`}
@@ -1502,7 +1502,7 @@ export const BuilderExposure360Report: React.FC<BuilderExposure360ReportProps> =
                 <label className="block font-semibold text-slate-700 mb-1">Update Status:</label>
                 <select
                   value={newReconStatus}
-                  onChange={(e) => setNewReconStatus(e.target.value as DemoReconciliationStatus)}
+                  onChange={(e) => setNewReconStatus(e.target.value as ExposureReconciliationStatus)}
                   className="w-full text-xs border border-slate-300 rounded-lg p-2 font-bold"
                 >
                   <option value="VERIFIED">VERIFIED</option>

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useAPF } from '../../context/APFContext';
 import { Grid, Search, Filter, ChevronRight, User } from 'lucide-react';
-import { DEMO_UNITS } from '../../data/mockData';
+import { SAMPLE_UNITS } from '../../data/mockData';
 
 export const Screen16_UnitInventory: React.FC = () => {
   const { setCurrentScreen, setSelectedUnit } = useAPF();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  const filtered = DEMO_UNITS.filter((u) => {
+  const filtered = SAMPLE_UNITS.filter((u) => {
     if (statusFilter !== 'ALL' && u.status !== statusFilter) return false;
     if (
       searchTerm &&
@@ -81,7 +81,7 @@ export const Screen16_UnitInventory: React.FC = () => {
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden space-y-4">
         <div className="p-4 border-b border-[#edf2f7] flex items-center justify-between">
           <h3 className="text-sm font-bold text-[#102a43]">
-            Showing {filtered.length} of {DEMO_UNITS.length} Units
+            Showing {filtered.length} of {SAMPLE_UNITS.length} Units
           </h3>
           <span className="text-xs text-[#627d98]">Real-Time Core Banking Feed</span>
         </div>

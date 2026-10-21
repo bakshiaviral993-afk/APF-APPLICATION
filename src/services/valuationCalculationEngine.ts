@@ -508,7 +508,7 @@ export function initializeValuationDraftFromCase(
       'Valuer revisit recommended if Phase 1 completion extends beyond 31-Dec-2026.',
     ],
 
-    valuerRecommendation: 'The project demonstrates sound structural quality, clear documentary approvals, and strong end-user absorption. The adopted base rate of ₹7,450/sq.ft is well-supported by micro-market registrations. Recommended for APF approval with standard construction-linked disbursement tranches.',
+    valuerRecommendation: 'The project exhibits sound structural quality, clear documentary approvals, and strong end-user absorption. The adopted base rate of ₹7,450/sq.ft is well-supported by micro-market registrations. Recommended for APF approval with standard construction-linked disbursement tranches.',
     declarationSiteVisitConfirmed: true,
     declarationTrueEvidenceConfirmed: true,
     digitalSignature: 'Digitally signed via PROVAL Valuer eSign Token: SHA256-49FA8102-DSC3',
