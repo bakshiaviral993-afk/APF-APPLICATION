@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAPF } from '../../context/APFContext';
 import {
   FileText,
@@ -10,10 +10,13 @@ import {
   Sparkles,
   CheckCircle,
   Copy,
+  UploadCloud,
 } from 'lucide-react';
+import { UploadProofDocumentModal, UploadedProofDocument } from '../common/UploadProofDocumentModal';
 
 export const EvidenceDrawer: React.FC = () => {
   const { activeEvidence, setActiveEvidence, addAuditLog } = useAPF();
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   if (!activeEvidence) return null;
 
@@ -138,18 +141,42 @@ export const EvidenceDrawer: React.FC = () => {
         </div>
 
         {/* Drawer Footer Actions */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
+        <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-2">
           <div className="text-[11px] text-slate-400">
             Audit Lineage Ref: <span className="font-mono text-slate-300">LIN-{activeEvidence.sourceId}</span>
           </div>
-          <button
-            onClick={() => setActiveEvidence(null)}
-            className="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition-colors"
-          >
-            Done Inspecting
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="px-3 py-1.5 rounded bg-sky-950/70 hover:bg-sky-900 border border-sky-800 text-sky-300 font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-sky-400" />
+              <span>+ Upload Proof</span>
+            </button>
+            <button
+              onClick={() => setActiveEvidence(null)}
+              className="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition-colors cursor-pointer"
+            >
+              Done Inspecting
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Upload Proof Document Modal */}
+      <UploadProofDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUploadSuccess={(doc) => {
+          addAuditLog('UPLOAD_EVIDENCE_PROOF', activeEvidence.sourceId, `Uploaded proof document: ${doc.name} (SHA-256: ${doc.sha256Hash.substring(0, 12)}...)`);
+          setIsUploadModalOpen(false);
+        }}
+        caseId="APF-2026-0001"
+        initialDocName={`Proof_${activeEvidence.documentTitle.replace(/\s+/g, '_')}`}
+        initialCategory={activeEvidence.sourceType}
+        title={`Upload Supplementary Proof for ${activeEvidence.documentTitle}`}
+        description="Attach verified primary document proof or revised deed scan with cryptographic audit hash."
+      />
     </div>
   );
 };

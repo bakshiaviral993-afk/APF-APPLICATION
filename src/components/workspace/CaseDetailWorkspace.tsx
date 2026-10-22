@@ -22,8 +22,15 @@ import {
   History,
   ArrowRight,
   ExternalLink,
+  UploadCloud,
+  FileCheck2,
+  Download,
+  CheckCircle2,
+  Eye,
+  Plus,
 } from 'lucide-react';
 import { RaiseQueryModal } from '../queries/RaiseQueryModal';
+import { UploadProofDocumentModal, UploadedProofDocument } from '../common/UploadProofDocumentModal';
 
 interface CaseDetailWorkspaceProps {
   caseId: string;
@@ -65,11 +72,91 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
   const tower = getTowerById(c.selectedTowerIds[0]);
   const queries = queryStore.getQueriesForCase(c.id);
 
+  const [caseDocs, setCaseDocs] = useState<Array<{
+    id: string;
+    name: string;
+    category: string;
+    version: string;
+    uploadedBy: string;
+    uploadedAt: string;
+    status: string;
+    docRef?: string;
+    observation?: string;
+  }>>([
+    {
+      id: 'DOC-2026-001',
+      name: 'RERA_Registration_P52100018542.pdf',
+      category: 'Statutory Clearance',
+      version: 'v1.2',
+      uploadedBy: 'cpa.desk01',
+      uploadedAt: '14-Jan-2026',
+      status: 'VERIFIED',
+      docRef: 'P52100018542',
+      observation: 'Valid statutory registration under RERA Act with complete building approvals.',
+    },
+    {
+      id: 'DOC-2026-003',
+      name: 'Title_Search_Report_30_Years.pdf',
+      category: 'Legal Due Diligence (TSR)',
+      version: 'v1.0',
+      uploadedBy: 'legal.ext01',
+      uploadedAt: '10-Feb-2026',
+      status: 'VERIFIED',
+      docRef: 'TSR/DUA/2026/092',
+      observation: 'Clear, marketable title with verified 30-year devolution flow.',
+    },
+    {
+      id: 'DOC-2026-002',
+      name: 'Sanctioned_Floor_Plan_Wing_A.pdf',
+      category: 'Architectural Blueprint',
+      version: 'v2.0',
+      uploadedBy: 'valuer.kf01',
+      uploadedAt: '02-Feb-2026',
+      status: 'VERIFIED',
+      docRef: 'PMC/BP/2025/3910',
+      observation: 'Municipal authority sanctioned layout with approved FSI.',
+    },
+    {
+      id: 'DOC-2026-004',
+      name: 'CERSAI_Charge_Verification_Certificate.pdf',
+      category: 'CERSAI Search Report',
+      version: 'v1.1',
+      uploadedBy: 'credit.com01',
+      uploadedAt: '15-Feb-2026',
+      status: 'VERIFIED',
+      docRef: 'CERSAI/REC/2026/51290',
+      observation: 'No prior encumbrances in favor of competing lenders.',
+    },
+  ]);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [activeUploadDoc, setActiveUploadDoc] = useState<any>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleProofUploaded = (doc: UploadedProofDocument) => {
+    const newDoc = {
+      id: doc.id,
+      name: doc.name,
+      category: doc.category,
+      version: activeUploadDoc ? 'v1.1' : 'v1.0',
+      uploadedBy: currentUser.username || currentUser.name,
+      uploadedAt: doc.uploadedAt,
+      status: 'VERIFIED',
+      docRef: doc.documentRef,
+      observation: doc.observation || 'Proof document uploaded and cryptographically validated.',
+    };
+    setCaseDocs((prev) => [newDoc, ...prev]);
+    showToast(`Proof document "${doc.name}" successfully attached to docket ${caseId}.`);
+    setActiveUploadDoc(null);
+  };
+
   const navigate = (mod: NavigationModule) => {
     if (onNavigateToModule) {
       onNavigateToModule(mod, c.id);
-    } else {
-      alert(`Navigate to ${mod} for Case ${c.id}`);
     }
   };
 
@@ -497,30 +584,122 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
       {/* Tab 7: DOCUMENTS */}
       {activeTab === 'DOCUMENTS' && (
         <div className="bg-white rounded-xl border border-slate-200/90 p-6 shadow-2xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Case Documents & Evidence</h3>
-              <p className="text-xs text-slate-500">RERA certificates, title deeds, blueprints & sanction letters</p>
+              <h3 className="text-sm font-bold text-slate-900">Case Documents &amp; Evidence Repository</h3>
+              <p className="text-xs text-slate-500">
+                Primary deeds, RERA certificates, technical blueprints, valuation proofs &amp; sanction letters
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('DOCUMENT_VAULT')}
-              className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer"
-            >
-              <span>Open Document Vault</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveUploadDoc(null);
+                  setIsUploadModalOpen(true);
+                }}
+                className="px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>+ Upload Proof Document</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('DOCUMENT_VAULT')}
+                className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+              >
+                <span>Central Vault</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
+          {/* Quick upload dropzone */}
+          <div
+            onClick={() => {
+              setActiveUploadDoc(null);
+              setIsUploadModalOpen(true);
+            }}
+            className="p-3.5 rounded-xl border border-dashed border-sky-300 bg-sky-50/50 hover:bg-sky-50 transition-all flex items-center justify-between gap-3 cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-sky-100 text-sky-700">
+                <UploadCloud className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-bold text-xs text-slate-900 block">Upload Supporting Verification Proof for this Docket</span>
+                <span className="text-[11px] text-slate-500">Click to upload certified copy of title deed, layout approval, or bank search certificate.</span>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-sky-700 bg-white px-2.5 py-1 rounded-md border border-sky-200 shadow-2xs">
+              Upload Proof
+            </span>
+          </div>
+
+          {/* Documents Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <strong className="text-slate-800 block">RERA_Registration_P52100018542.pdf</strong>
-              <span className="text-slate-400 text-[10px] font-mono">v1.2 · Verified Clearance</span>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <strong className="text-slate-800 block">Title_Search_Report_30_Years.pdf</strong>
-              <span className="text-slate-400 text-[10px] font-mono">v1.0 · Dua Associates & Partners</span>
-            </div>
+            {caseDocs.map((doc) => (
+              <div
+                key={doc.id}
+                className="p-3.5 bg-slate-50 hover:bg-white rounded-xl border border-slate-200/90 shadow-2xs transition-all space-y-2 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      <FileCheck2 className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block font-bold leading-snug">{doc.name}</strong>
+                        <span className="text-slate-400 text-[10px] font-mono">
+                          {doc.version} · {doc.category}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      <span>{doc.status}</span>
+                    </span>
+                  </div>
+
+                  {doc.docRef && (
+                    <div className="text-[11px] font-mono text-slate-600 bg-white p-1.5 rounded border border-slate-200 mt-2 truncate">
+                      Ref: <strong className="text-slate-800">{doc.docRef}</strong>
+                    </div>
+                  )}
+
+                  {doc.observation && (
+                    <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">
+                      {doc.observation}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Uploaded by {doc.uploadedBy} on {doc.uploadedAt}</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveUploadDoc(doc);
+                        setIsUploadModalOpen(true);
+                      }}
+                      className="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 rounded font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Upload revised proof document"
+                    >
+                      <UploadCloud className="w-3 h-3 text-sky-600" />
+                      <span>Upload Proof</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => showToast(`Downloaded verified document: ${doc.name}`)}
+                      className="p-1 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-200 cursor-pointer"
+                      title="Download verified document"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -610,6 +789,21 @@ export const CaseDetailWorkspace: React.FC<CaseDetailWorkspaceProps> = ({
           onQueryCreated={() => setShowQueryModal(false)}
         />
       )}
+
+      {/* Upload Proof Document Modal */}
+      <UploadProofDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+          setActiveUploadDoc(null);
+        }}
+        onUploadSuccess={handleProofUploaded}
+        caseId={c.id}
+        initialDocName={activeUploadDoc ? `Proof_Update_${activeUploadDoc.name.replace(/\s+/g, '_')}` : ''}
+        initialCategory={activeUploadDoc?.category || 'Statutory / RERA Certificate'}
+        title={activeUploadDoc ? `Upload Proof for ${activeUploadDoc.name}` : `Upload Supporting Proof Document (Case: ${c.id})`}
+        description="Attach certified documents or primary source proofs with automated cryptographic SHA-256 validation."
+      />
     </div>
   );
 };

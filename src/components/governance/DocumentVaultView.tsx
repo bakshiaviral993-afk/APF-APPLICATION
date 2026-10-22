@@ -12,7 +12,12 @@ import {
   Lock,
   History,
   CheckCircle2,
+  X,
+  FileText,
+  ShieldCheck,
+  Plus,
 } from 'lucide-react';
+import { UploadProofDocumentModal, UploadedProofDocument } from '../common/UploadProofDocumentModal';
 
 interface DocumentVaultViewProps {
   currentUser: UserAccount;
@@ -33,7 +38,7 @@ interface VaultDoc {
   visibility: 'CONFIDENTIAL' | 'INTERNAL' | 'VENDOR_SHARED';
 }
 
-const MOCK_DOCS: VaultDoc[] = [
+const INITIAL_MOCK_DOCS: VaultDoc[] = [
   {
     id: 'DOC-2026-001',
     name: 'MahaRERA_Registration_P52100018542.pdf',
@@ -118,9 +123,66 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({
   currentUser,
   onBack,
 }) => {
-  const [docs] = useState<VaultDoc[]>(MOCK_DOCS);
+  const [docs, setDocs] = useState<VaultDoc[]>(INITIAL_MOCK_DOCS);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [search, setSearch] = useState('');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadContextDoc, setUploadContextDoc] = useState<VaultDoc | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<VaultDoc | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleUploadSuccess = (newDoc: UploadedProofDocument) => {
+    // Map category
+    let cat: VaultDoc['category'] = 'PROJECT';
+    if (newDoc.category.toLowerCase().includes('technical') || newDoc.category.toLowerCase().includes('blueprint')) {
+      cat = 'TECHNICAL';
+    } else if (newDoc.category.toLowerCase().includes('legal') || newDoc.category.toLowerCase().includes('title')) {
+      cat = 'LEGAL';
+    } else if (newDoc.category.toLowerCase().includes('cersai') || newDoc.category.toLowerCase().includes('charge')) {
+      cat = 'EXPOSURE';
+    } else if (newDoc.category.toLowerCase().includes('sanction') || newDoc.category.toLowerCase().includes('approval')) {
+      cat = 'APPROVAL';
+    } else if (newDoc.category.toLowerCase().includes('invoice') || newDoc.category.toLowerCase().includes('bill')) {
+      cat = 'BILLING';
+    }
+
+    const createdVaultDoc: VaultDoc = {
+      id: newDoc.id,
+      name: newDoc.name,
+      caseId: newDoc.caseId || 'APF-2026-0001',
+      category: cat,
+      version: uploadContextDoc ? `v${(parseFloat(uploadContextDoc.version.replace('v', '')) + 0.1).toFixed(1)}` : 'v1.0',
+      type: newDoc.category,
+      uploadedBy: currentUser.username || currentUser.name,
+      date: newDoc.uploadedAt,
+      status: 'CURRENT',
+      sha256Hash: newDoc.sha256Hash,
+      visibility: 'INTERNAL',
+    };
+
+    setDocs((prev) => [createdVaultDoc, ...prev]);
+    showToast(`Proof document "${newDoc.name}" uploaded successfully with SHA-256 verification.`);
+    setUploadContextDoc(null);
+  };
+
+  const handleDownload = (doc: VaultDoc) => {
+    const dummyContent = `PROVAL APF DOCUMENT VAULT\nDocument ID: ${doc.id}\nName: ${doc.name}\nCase ID: ${doc.caseId}\nCategory: ${doc.category}\nSHA-256: ${doc.sha256Hash}\nTimestamp: ${doc.date}\nVerification: TAMPER-EVIDENT CRYPTOGRAPHIC LOG`;
+    const blob = new Blob([dummyContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = doc.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast(`Downloaded verified document copy: ${doc.name}`);
+  };
 
   const filtered = docs.filter((d) => {
     const matchesSearch =
@@ -134,6 +196,13 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-12">
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-emerald-900 text-white px-4 py-2.5 rounded-xl shadow-xl border border-emerald-700 flex items-center gap-2 animate-in fade-in duration-200 text-xs font-semibold">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       <PageHeaderNav
         moduleName="Document Vault"
         pageTitle="Centralized APF Document & Evidence Vault"
@@ -144,11 +213,14 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({
         rightActions={
           <button
             type="button"
-            onClick={() => alert('Document upload dialog opened.')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs cursor-pointer"
+            onClick={() => {
+              setUploadContextDoc(null);
+              setIsUploadModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
           >
-            <UploadCloud className="w-3.5 h-3.5" />
-            <span>+ Upload Document</span>
+            <UploadCloud className="w-4 h-4" />
+            <span>+ Upload Document Proof</span>
           </button>
         }
       />
@@ -239,23 +311,35 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({
                       {d.status}
                     </span>
                   </td>
-                  <td className="py-3 px-3 font-mono text-[10px] text-slate-400">
+                  <td className="py-3 px-3 font-mono text-[10px] text-slate-400" title={d.sha256Hash}>
                     {d.sha256Hash.substring(0, 12)}...
                   </td>
                   <td className="py-3 px-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
-                        onClick={() => alert(`Previewing ${d.name}`)}
-                        className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                        onClick={() => {
+                          setUploadContextDoc(d);
+                          setIsUploadModalOpen(true);
+                        }}
+                        className="px-2 py-1 rounded bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Upload new proof version"
+                      >
+                        <UploadCloud className="w-3 h-3 text-sky-600" />
+                        <span>Upload Proof</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc(d)}
+                        className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
                         title="Preview Document"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => alert(`Downloading ${d.name}`)}
-                        className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                        onClick={() => handleDownload(d)}
+                        className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
                         title="Download Document"
                       >
                         <Download className="w-3.5 h-3.5" />
@@ -268,6 +352,78 @@ export const DocumentVaultView: React.FC<DocumentVaultViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 text-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-sky-600" />
+                <h3 className="font-bold text-sm text-slate-900">Document Cryptographic Inspection</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-[11px]">
+              <div><strong className="text-slate-900">Document:</strong> {previewDoc.name}</div>
+              <div><strong className="text-slate-900">Docket:</strong> {previewDoc.caseId}</div>
+              <div><strong className="text-slate-900">Category:</strong> {previewDoc.category} ({previewDoc.type})</div>
+              <div><strong className="text-slate-900">Version:</strong> {previewDoc.version}</div>
+              <div><strong className="text-slate-900">Uploaded By:</strong> {previewDoc.uploadedBy} on {previewDoc.date}</div>
+              <div className="break-all pt-1 text-[10px] text-slate-500">
+                <strong className="text-slate-900">SHA-256 Hash:</strong><br />
+                {previewDoc.sha256Hash}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadContextDoc(previewDoc);
+                  setPreviewDoc(null);
+                  setIsUploadModalOpen(true);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-800 font-bold hover:bg-sky-100 flex items-center gap-1 cursor-pointer"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>Upload Revised Proof</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleDownload(previewDoc);
+                  setPreviewDoc(null);
+                }}
+                className="px-4 py-1.5 rounded-lg bg-slate-900 text-white font-bold hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Verified Copy</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Proof Document Modal */}
+      <UploadProofDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUploadSuccess={handleUploadSuccess}
+        caseId={uploadContextDoc?.caseId || 'APF-2026-0001'}
+        initialDocName={uploadContextDoc ? `Proof_Rev_${uploadContextDoc.name}` : ''}
+        initialCategory={uploadContextDoc?.type || 'Statutory / RERA Certificate'}
+        title={uploadContextDoc ? `Upload Proof / Revision for ${uploadContextDoc.name}` : 'Upload Document & Verification Proof'}
+        description="Attach certified documents or primary source proofs with automated cryptographic SHA-256 validation."
+      />
     </div>
   );
 };

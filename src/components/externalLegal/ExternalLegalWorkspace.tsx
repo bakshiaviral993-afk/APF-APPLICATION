@@ -35,7 +35,9 @@ import {
   DollarSign,
   AlertCircle,
   Download,
+  UploadCloud,
 } from 'lucide-react';
+import { UploadProofDocumentModal, UploadedProofDocument } from '../common/UploadProofDocumentModal';
 
 interface ExternalLegalWorkspaceProps {
   caseId: string;
@@ -61,6 +63,31 @@ export const ExternalLegalWorkspace: React.FC<ExternalLegalWorkspaceProps> = ({
   const [saveToast, setSaveToast] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [activeUploadDoc, setActiveUploadDoc] = useState<LegalDocumentItem | null>(null);
+
+  const handleProofUploaded = (uploadedDoc: UploadedProofDocument) => {
+    if (activeUploadDoc) {
+      const updatedDocs = report.documentsExamined?.map((d) =>
+        d.id === activeUploadDoc.id
+          ? {
+              ...d,
+              status: 'Available' as const,
+              documentRef: uploadedDoc.documentRef || d.documentRef || `REC-${uploadedDoc.id}`,
+              documentDate: uploadedDoc.documentDate || d.documentDate,
+              observation: `${uploadedDoc.observation || 'Certified proof uploaded and verified'}. (Proof: ${uploadedDoc.name})`,
+            }
+          : d
+      );
+      const updatedReport = { ...report, documentsExamined: updatedDocs };
+      setReport(updatedReport);
+      legalStore.saveDraftReport(caseId, updatedReport);
+      showNotification(`Proof attached for ${activeUploadDoc.name}: ${uploadedDoc.name}`);
+    } else {
+      showNotification(`Proof document ${uploadedDoc.name} uploaded.`);
+    }
+    setActiveUploadDoc(null);
+  };
 
   // Rework notice if returned by CPA
   const isRework = report.status === 'LEGAL_REWORK';
@@ -365,13 +392,26 @@ export const ExternalLegalWorkspace: React.FC<ExternalLegalWorkspaceProps> = ({
         {/* STEP 2: Document Checklist */}
         {activeStep === 2 && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <h3 className="font-bold text-sm text-slate-900">
-                Section 2: Document Checklist & Title Instruments Examined
-              </h3>
-              <span className="text-xs text-slate-500">
-                Total Documents: {report.documentsExamined?.length || 0}
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">
+                  Section 2: Document Checklist & Title Instruments Examined
+                </h3>
+                <span className="text-xs text-slate-500">
+                  Total Documents: {report.documentsExamined?.length || 0}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveUploadDoc(null);
+                  setIsUploadModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>+ Upload Certified Proof</span>
+              </button>
             </div>
 
             <div className="overflow-x-auto">
@@ -407,16 +447,30 @@ export const ExternalLegalWorkspace: React.FC<ExternalLegalWorkspaceProps> = ({
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-slate-600">{doc.observation || 'Verified on registry records.'}</td>
-                      <td className="py-2.5 px-3 text-right space-x-1">
+                      <td className="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
                         <button
+                          type="button"
+                          onClick={() => {
+                            setActiveUploadDoc(doc);
+                            setIsUploadModalOpen(true);
+                          }}
+                          className="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 rounded text-[11px] font-bold cursor-pointer inline-flex items-center gap-1"
+                          title="Upload certified copy proof"
+                        >
+                          <UploadCloud className="w-3 h-3 text-sky-600" />
+                          <span>Upload Proof</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleAuditDocumentView(doc)}
                           className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium cursor-pointer"
                         >
                           View
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleAuditDocumentDownload(doc)}
-                          className="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 rounded text-[11px] font-medium cursor-pointer"
+                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium cursor-pointer"
                         >
                           Download
                         </button>
@@ -972,6 +1026,21 @@ export const ExternalLegalWorkspace: React.FC<ExternalLegalWorkspaceProps> = ({
           </div>
         </div>
       )}
+
+      {/* Upload Proof Document Modal */}
+      <UploadProofDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+          setActiveUploadDoc(null);
+        }}
+        onUploadSuccess={handleProofUploaded}
+        caseId={caseId}
+        initialDocName={activeUploadDoc ? `Proof_${activeUploadDoc.name.replace(/\s+/g, '_')}` : ''}
+        initialCategory={activeUploadDoc?.category || '30-Year Title Search Report (TSR)'}
+        title={activeUploadDoc ? `Upload Certified Proof for ${activeUploadDoc.name}` : 'Upload Certified Document Proof'}
+        description="Attach verified certified copy of title deed, sub-registrar search extract or non-encumbrance proof."
+      />
     </div>
   );
 };

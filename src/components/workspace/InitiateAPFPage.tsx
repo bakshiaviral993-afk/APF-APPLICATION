@@ -24,7 +24,10 @@ import {
   CheckSquare,
   Square,
   Building,
+  Download,
+  FileCheck2,
 } from 'lucide-react';
+import { UploadProofDocumentModal, UploadedProofDocument } from '../common/UploadProofDocumentModal';
 
 interface InitiateAPFPageProps {
   currentUser: UserAccount;
@@ -92,11 +95,40 @@ export const InitiateAPFPage: React.FC<InitiateAPFPageProps> = ({
   const [legalSlaDays, setLegalSlaDays] = useState(7);
 
   // Documents
-  const [uploadedDocs] = useState([
-    { name: 'RERA_Registration_Certificate.pdf', size: '2.4 MB', status: 'VERIFIED' },
-    { name: 'Sanctioned_Layout_Plan_Rev3.pdf', size: '14.8 MB', status: 'VERIFIED' },
-    { name: 'Commencement_Certificate_Phase1.pdf', size: '3.1 MB', status: 'VERIFIED' },
+  const [uploadedDocs, setUploadedDocs] = useState<Array<{
+    name: string;
+    size: string;
+    status: string;
+    category?: string;
+    ref?: string;
+    hash?: string;
+  }>>([
+    { name: 'RERA_Registration_Certificate.pdf', size: '2.4 MB', status: 'VERIFIED', category: 'Statutory Clearance', ref: 'RERA-P521-001' },
+    { name: 'Sanctioned_Layout_Plan_Rev3.pdf', size: '14.8 MB', status: 'VERIFIED', category: 'Architectural Blueprint', ref: 'PMC-BP-3910' },
+    { name: 'Commencement_Certificate_Phase1.pdf', size: '3.1 MB', status: 'VERIFIED', category: 'Municipal NOC', ref: 'CC-2025-091' },
   ]);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [activeUploadDoc, setActiveUploadDoc] = useState<any>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleProofUploaded = (doc: UploadedProofDocument) => {
+    const newDoc = {
+      name: doc.name,
+      size: doc.fileSize,
+      status: 'VERIFIED',
+      category: doc.category,
+      ref: doc.documentRef,
+      hash: doc.sha256Hash,
+    };
+    setUploadedDocs((prev) => [newDoc, ...prev]);
+    showToast(`Proof document "${doc.name}" attached to APF intake dossier.`);
+    setActiveUploadDoc(null);
+  };
 
   // Sync with MasterStore updates
   useEffect(() => {
@@ -949,31 +981,78 @@ export const InitiateAPFPage: React.FC<InitiateAPFPageProps> = ({
         {/* Step 7: Documents */}
         {currentStep === 7 && (
           <div className="space-y-4">
-            <div className="border-b border-slate-200 pb-3">
-              <h3 className="text-sm font-bold text-slate-900">Step 7: Mandatory Document Repository</h3>
-              <p className="text-xs text-slate-500">Initial intake documents verified against Project Vault.</p>
+            <div className="border-b border-slate-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Step 7: Mandatory Document Repository</h3>
+                <p className="text-xs text-slate-500">Initial intake documents verified against Project Vault.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveUploadDoc(null);
+                  setIsUploadModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>+ Upload Document Proof</span>
+              </button>
             </div>
 
             <div className="space-y-2">
               {uploadedDocs.map((doc, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs"
+                  className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white transition-colors text-xs"
                 >
                   <div className="flex items-center gap-2">
-                    <FileCheck className="w-4 h-4 text-emerald-600" />
-                    <span className="font-bold text-slate-800">{doc.name}</span>
-                    <span className="text-slate-400 font-mono">({doc.size})</span>
+                    <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-slate-800">{doc.name}</span>
+                      <span className="text-slate-400 font-mono ml-2">({doc.size})</span>
+                      {doc.category && (
+                        <span className="text-[10px] text-slate-400 block font-mono">
+                          {doc.category} {doc.ref ? `· Ref: ${doc.ref}` : ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                    {doc.status}
-                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      {doc.status}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveUploadDoc(doc);
+                        setIsUploadModalOpen(true);
+                      }}
+                      className="px-2 py-1 rounded bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Upload revised proof"
+                    >
+                      <UploadCloud className="w-3 h-3 text-sky-600" />
+                      <span>Upload Proof</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="p-4 border-2 border-dashed border-slate-200 rounded-lg text-center text-xs text-slate-500">
-              Drag & Drop additional title deeds, sanctioned layout blueprints or NOCs here
+            <div
+              onClick={() => {
+                setActiveUploadDoc(null);
+                setIsUploadModalOpen(true);
+              }}
+              className="p-5 border-2 border-dashed border-sky-300 hover:border-sky-400 bg-sky-50/40 hover:bg-sky-50/70 rounded-xl text-center text-xs text-slate-600 cursor-pointer transition-colors"
+            >
+              <UploadCloud className="w-6 h-6 text-sky-600 mx-auto mb-1.5" />
+              <p className="font-bold text-slate-800">
+                Click or Drop additional title deeds, sanctioned blueprints or NOC proofs here
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Each upload is cryptographically hashed with SHA-256 and cataloged into the case dossier.
+              </p>
             </div>
           </div>
         )}
@@ -1052,6 +1131,21 @@ export const InitiateAPFPage: React.FC<InitiateAPFPageProps> = ({
           )}
         </div>
       </div>
+
+      {/* Upload Proof Document Modal */}
+      <UploadProofDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+          setActiveUploadDoc(null);
+        }}
+        onUploadSuccess={handleProofUploaded}
+        caseId="NEW-INTAKE-CASE"
+        initialDocName={activeUploadDoc ? `Proof_Update_${activeUploadDoc.name.replace(/\s+/g, '_')}` : ''}
+        initialCategory={activeUploadDoc?.category || 'Statutory / RERA Certificate'}
+        title={activeUploadDoc ? `Upload Proof for ${activeUploadDoc.name}` : 'Upload Mandatory Intake Document Proof'}
+        description="Attach verified certified copy of title deed, layout blueprint or commencement NOC."
+      />
     </div>
   );
 };
